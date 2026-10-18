@@ -1,124 +1,74 @@
-import { createFileRoute, Link, useNavigate } from "@tanstack/react-router";
-import { useQuery, useQueryClient } from "@tanstack/react-query";
-import { useEffect, useState } from "react";
-import { toast } from "sonner";
-import { supabase } from "@/integrations/supabase/client";
-import { AppShell } from "@/components/AppShell";
-import { useCart, formatINR } from "@/lib/cart";
-import { useAuth } from "@/lib/auth";
+import { createFileRoute, Link, useNavigate } from '@tanstack/react-router';
+import { useServerFn } from '@tanstack/react-start';
+import { useEffect, useState } from 'react';
+import { toast } from 'sonner';
+import { AppShell } from '@/components/AppShell';
+import { Button } from '@/components/ui/button';
+import { useCart, formatINR } from '@/lib/cart';
+import { detailsKey, guestDetailsSchema, readSavedOrders, savedOrdersKey, type GuestDetails } from '@/lib/guest-checkout';
+import { placeGuestOrder } from '@/lib/guest-order.functions';
 
-export const Route = createFileRoute("/checkout")({
-  head: () => ({
-    meta: [
-      { title: "Checkout — Wholesale Mart" },
-      { name: "description", content: "Confirm your delivery address and place your order. Pay cash or UPI on delivery." },
-      { property: "og:title", content: "Checkout — Wholesale Mart" },
-      { property: "og:description", content: "Place your order — pay on delivery." },
-      { property: "og:type", content: "website" },
-      { name: "twitter:card", content: "summary" },
-    ],
-  }),
+export const Route = createFileRoute('/checkout')({
+  head: () => ({ meta: [
+    { title: 'Guest Checkout — Wholesale Mart' },
+    { name: 'description', content: 'Place your wholesale order without an account. Pay cash or UPI on delivery.' },
+    { property: 'og:title', content: 'Guest Checkout — Wholesale Mart' },
+    { property: 'og:description', content: 'Confirm your details and order with payment on delivery.' },
+    { property: 'og:type', content: 'website' }, { name: 'twitter:card', content: 'summary' },
+  ] }),
   component: Checkout,
 });
 
 function Checkout() {
-  const { session, ready } = useAuth();
   const { lines, total, clear } = useCart();
   const navigate = useNavigate();
-  const qc = useQueryClient();
-  const [address, setAddress] = useState("");
-  const [note, setNote] = useState("");
+  const place = useServerFn(placeGuestOrder);
+  const [details, setDetails] = useState<GuestDetails>({ name: '', phone: '', email: '', address: '' });
+  const [loaded, setLoaded] = useState(false);
+  const [note, setNote] = useState('');
   const [busy, setBusy] = useState(false);
-
-  const { data: customer } = useQuery({
-    queryKey: ["customer", session?.user.id],
-    enabled: !!session,
-    queryFn: async () => {
-      const { data, error } = await supabase.from("customers").select("*").eq("id", session!.user.id).maybeSingle();
-      if (error) throw error;
-      return data;
-    },
-  });
   useEffect(() => {
-    if (customer && !address) setAddress(customer.address);
-  }, [customer]); // eslint-disable-line react-hooks/exhaustive-deps
+    try {
+      const stored = guestDetailsSchema.safeParse(JSON.parse(localStorage.getItem(detailsKey) ?? 'null'));
+      if (stored.success) setDetails(stored.data);
+    } catch {}
+    setLoaded(true);
+  }, []);
+  useEffect(() => {
+    if (!loaded) return;
+    try { localStorage.setItem(detailsKey, JSON.stringify(details)); } catch {}
+  }, [details, loaded]);
 
-  if (ready && !session) {
-    return (
-      <AppShell title="Checkout" hideCartBar>
-        <div className="px-4 py-20 text-center">
-          <p className="text-lg font-semibold">Please log in to place your order</p>
-          <Link to="/auth" search={{ redirect: "/checkout" }} className="mt-4 inline-block rounded-xl bg-primary px-5 py-3 font-bold text-primary-foreground">
-            Login / Sign up
-          </Link>
-        </div>
-      </AppShell>
-    );
-  }
-  if (lines.length === 0) {
-    return (
-      <AppShell title="Checkout" hideCartBar>
-        <p className="px-4 py-20 text-center text-muted-foreground">Your cart is empty.</p>
-      </AppShell>
-    );
-  }
-
-  async function placeOrder() {
-    if (address.trim().length < 5) {
-      toast.error("Please enter your delivery address");
-      return;
-    }
+  async function submit(event: React.FormEvent) {
+    event.preventDefault();
+    if (busy) return;
+    const parsed = guestDetailsSchema.safeParse(details);
+    if (!parsed.success) return void toast.error(parsed.error.issues[0]?.message ?? 'Check your details');
     setBusy(true);
-    const { error } = await supabase.rpc("place_order", {
-      _address: address.trim().slice(0, 500),
-      _note: note.trim().slice(0, 500),
-      _items: lines.map((l) => ({ product_id: l.id, quantity: l.quantity })),
-    });
-    setBusy(false);
-    if (error) {
-      toast.error(error.message.includes("unavailable") ? "Some items are out of stock. Please update your cart." : "Could not place order. Please try again.");
-      return;
-    }
-    clear();
-    qc.invalidateQueries({ queryKey: ["orders"] });
-    toast.success("Order placed! We'll confirm it shortly.");
-    navigate({ to: "/orders" });
+    try {
+      const result = await place({ data: { ...parsed.data, note, items: lines.map(l => ({ product_id: l.id, quantity: l.quantity })) } });
+      try {
+        localStorage.setItem(detailsKey, JSON.stringify(parsed.data));
+        localStorage.setItem(savedOrdersKey, JSON.stringify([{ ...result, created_at: new Date().toISOString() }, ...readSavedOrders()].slice(0, 100)));
+      } catch {}
+      clear();
+      await navigate({ to: '/order/$token', params: { token: result.token } });
+    } catch (error) { toast.error(error instanceof Error ? error.message : 'Could not place order. Please try again.'); }
+    finally { setBusy(false); }
   }
-
-  const input = "w-full rounded-xl border bg-surface px-3 py-3 text-base outline-none focus:border-primary";
-  return (
-    <AppShell title="Checkout" hideCartBar>
-      <div className="space-y-4 px-4 py-4">
-        <section className="card-elevated space-y-2 p-4">
-          <h2 className="font-bold">Delivery address</h2>
-          <textarea rows={3} className={input} value={address} onChange={(e) => setAddress(e.target.value)} maxLength={500} />
-        </section>
-        <section className="card-elevated space-y-2 p-4">
-          <h2 className="font-bold">Note <span className="font-normal text-muted-foreground">(optional)</span></h2>
-          <textarea rows={2} className={input} value={note} onChange={(e) => setNote(e.target.value)} maxLength={500}
-            placeholder="E.g. deliver after 4 pm" />
-        </section>
-        <section className="card-elevated space-y-2 p-4">
-          <h2 className="font-bold">Order summary</h2>
-          {lines.map((l) => (
-            <div key={l.id} className="flex justify-between gap-2 text-sm">
-              <span className="min-w-0 truncate">{l.quantity} × {l.name}</span>
-              <span className="shrink-0 font-semibold">{formatINR(l.price * l.quantity)}</span>
-            </div>
-          ))}
-          <div className="flex justify-between border-t pt-2 text-lg font-extrabold">
-            <span>Total</span><span>{formatINR(total)}</span>
-          </div>
-        </section>
-        <section className="rounded-xl bg-secondary p-4 text-sm text-secondary-foreground">
-          <p className="font-bold">Payment: Cash or UPI on delivery</p>
-          <p>No online payment needed. Pay when your order arrives.</p>
-        </section>
-        <button onClick={placeOrder} disabled={busy}
-          className="h-12 w-full rounded-xl bg-primary text-base font-bold text-primary-foreground disabled:opacity-60">
-          {busy ? "Placing order…" : `Place Order · ${formatINR(total)}`}
-        </button>
-      </div>
-    </AppShell>
-  );
+  if (!lines.length) return <AppShell title="Checkout" hideCartBar><div className="px-4 py-20 text-center"><p>Your cart is empty.</p><Button asChild className="mt-4"><Link to="/">Browse products</Link></Button></div></AppShell>;
+  const input = 'w-full rounded-lg border bg-surface px-3 py-3 text-base outline-none focus:border-primary';
+  return <AppShell title="Checkout" hideCartBar>
+    <form onSubmit={submit} className="space-y-5 px-4 py-5">
+      <h1 className="text-xl font-extrabold">Delivery details</h1>
+      <label className="block space-y-1 text-sm font-semibold"><span>Name *</span><input required maxLength={100} autoComplete="name" className={input} value={details.name} onChange={e => setDetails({ ...details, name: e.target.value })} /></label>
+      <label className="block space-y-1 text-sm font-semibold"><span>Phone number *</span><div className="flex items-center rounded-lg border bg-surface"><span className="pl-3 text-muted-foreground">+91</span><input required pattern="[0-9]{10}" inputMode="numeric" maxLength={10} autoComplete="tel-national" className="min-w-0 flex-1 bg-transparent px-2 py-3 text-base outline-none" value={details.phone} onChange={e => setDetails({ ...details, phone: e.target.value.replace(/\D/g, '') })} /></div></label>
+      <label className="block space-y-1 text-sm font-semibold"><span>Email (optional)</span><input type="email" maxLength={255} autoComplete="email" className={input} value={details.email} onChange={e => setDetails({ ...details, email: e.target.value })} /></label>
+      <label className="block space-y-1 text-sm font-semibold"><span>Delivery address *</span><textarea required minLength={5} maxLength={500} rows={3} autoComplete="street-address" className={input} value={details.address} onChange={e => setDetails({ ...details, address: e.target.value })} placeholder="Shop name, street, landmark, town" /></label>
+      <label className="block space-y-1 text-sm font-semibold"><span>Note (optional)</span><textarea rows={2} maxLength={500} className={input} value={note} onChange={e => setNote(e.target.value)} /></label>
+      <section className="space-y-2 border-y py-4"><h2 className="font-bold">Order summary</h2>{lines.map(l => <div key={l.id} className="flex justify-between gap-3 text-sm"><span className="min-w-0 break-words">{l.quantity} × {l.name}</span><span className="shrink-0 font-semibold">{formatINR(l.price * l.quantity)}</span></div>)}<div className="flex justify-between border-t pt-3 text-lg font-extrabold"><span>Total</span><span>{formatINR(total)}</span></div></section>
+      <p className="rounded-lg bg-secondary p-4 text-sm font-semibold text-secondary-foreground">Payment: Cash or UPI on delivery</p>
+      <Button type="submit" disabled={busy || !loaded} className="h-12 w-full text-base font-bold">{busy ? 'Placing order…' : `Place Order · ${formatINR(total)}`}</Button>
+    </form>
+  </AppShell>;
 }

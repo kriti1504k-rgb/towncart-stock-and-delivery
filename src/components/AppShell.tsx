@@ -1,12 +1,10 @@
 import { Link } from "@tanstack/react-router";
-import { Home, ShoppingCart, Package, User } from "lucide-react";
+import { Home, ShoppingCart, Package, ShieldCheck } from "lucide-react";
 import type { ReactNode } from "react";
 import { useCart, formatINR } from "@/lib/cart";
-import { useAuth } from "@/lib/auth";
 
 export function AppShell({ children, title, hideCartBar }: { children: ReactNode; title?: string; hideCartBar?: boolean }) {
   const { count, total } = useCart();
-  const { session } = useAuth();
   return (
     <div className="mx-auto min-h-screen max-w-3xl pb-36">
       <header className="sticky top-0 z-20 border-b bg-surface/95 backdrop-blur">
@@ -15,18 +13,15 @@ export function AppShell({ children, title, hideCartBar }: { children: ReactNode
             <span className="grid h-9 w-9 shrink-0 place-items-center rounded-xl bg-primary text-lg font-extrabold text-primary-foreground">
               W
             </span>
-            <span className="truncate text-lg font-extrabold tracking-tight">
+            <span className="truncate text-lg font-extrabold ">
               {title ?? "Wholesale Mart"}
             </span>
           </Link>
-          {!session && (
-            <Link to="/auth" className="shrink-0 rounded-lg bg-secondary px-3 py-1.5 text-sm font-semibold text-secondary-foreground">
-              Login
-            </Link>
-          )}
+
         </div>
       </header>
       <main>{children}</main>
+      <div className="flex justify-center px-4 py-6"><Link to="/admin" className="flex items-center gap-1 text-xs text-muted-foreground"><ShieldCheck className="size-3" />Admin</Link></div>
 
       {!hideCartBar && count > 0 && (
         <Link
@@ -43,18 +38,17 @@ export function AppShell({ children, title, hideCartBar }: { children: ReactNode
       )}
 
       <nav className="fixed inset-x-0 bottom-0 z-30 border-t bg-surface">
-        <div className="mx-auto grid max-w-3xl grid-cols-4">
+        <div className="mx-auto grid max-w-3xl grid-cols-3">
           <NavItem to="/" icon={<Home className="h-5 w-5" />} label="Home" />
           <NavItem to="/cart" icon={<ShoppingCart className="h-5 w-5" />} label={`Cart${count ? ` (${count})` : ""}`} />
           <NavItem to="/orders" icon={<Package className="h-5 w-5" />} label="Orders" />
-          <NavItem to="/account" icon={<User className="h-5 w-5" />} label="Account" />
         </div>
       </nav>
     </div>
   );
 }
 
-function NavItem({ to, icon, label }: { to: "/" | "/cart" | "/orders" | "/account"; icon: ReactNode; label: string }) {
+function NavItem({ to, icon, label }: { to: "/" | "/cart" | "/orders"; icon: ReactNode; label: string }) {
   return (
     <Link
       to={to}

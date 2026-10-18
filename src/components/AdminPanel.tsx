@@ -10,7 +10,7 @@ import { Switch } from '@/components/ui/switch';
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogDescription } from '@/components/ui/dialog';
 import { supabase } from '@/integrations/supabase/client';
 import type { Tables } from '@/integrations/supabase/types';
-import { getAdminData, resetCustomerPassword } from '@/lib/admin.functions';
+import { getAdminData } from '@/lib/admin.functions';
 import { useAuth } from '@/lib/auth';
 import { formatINR } from '@/lib/cart';
 import { customerContact, dashboardStats, orderStatuses, productSchema } from '@/lib/admin-rules';
@@ -98,16 +98,17 @@ export function AdminPanel() {
 
   const stats = dashboardStats(data.orders);
   const selectedOrder = data.orders.find(o => o.id === orderId);
-  const selectedCustomer = data.customers.find(c => c.id === selectedOrder?.customer_id);
+  const customerRecord = data.customers.find(c => c.id === selectedOrder?.customer_id);
+  const selectedCustomer = selectedOrder?.guest_name ? { name: selectedOrder.guest_name, phone: selectedOrder.guest_phone ?? '', address: selectedOrder.delivery_address } : customerRecord;
   const contact = selectedCustomer ? customerContact(selectedCustomer.phone) : null;
   const q = search.trim().toLowerCase();
   const visibleOrders = data.orders.filter(o => {
     const c = data.customers.find(c => c.id === o.customer_id);
-    return (status === 'All' || o.status === status) && (!q || `${o.id} ${c?.name} ${c?.phone}`.toLowerCase().includes(q));
+    return (status === 'All' || o.status === status) && (!q || `${o.id} ${o.guest_name ?? c?.name} ${o.guest_phone ?? c?.phone}`.toLowerCase().includes(q));
   });
   const showOrders = (orders: Order[]) => <div className="overflow-x-auto"><table className="w-full min-w-[560px] text-left text-sm"><thead className="border-b bg-muted/50 text-xs text-muted-foreground"><tr><th className="p-4">Order / customer</th><th className="p-4">Placed</th><th className="p-4">Total</th><th className="p-4">Status</th><th className="p-4"><span className="sr-only">Open</span></th></tr></thead><tbody>{orders.map(o => {
     const c = data.customers.find(c => c.id === o.customer_id);
-    return <tr key={o.id} className="border-b last:border-0"><td className="p-4"><span className="font-bold">#{o.id.slice(0, 8).toUpperCase()}</span>{o.status === 'Received' && <span className="ml-2 rounded bg-secondary px-1.5 py-0.5 text-xs font-bold text-primary">NEW</span>}<div className="mt-1 text-muted-foreground">{c?.name ?? 'Customer'}</div></td><td className="p-4 text-muted-foreground">{formatDate(o.created_at)}</td><td className="p-4 font-bold">{formatINR(Number(o.total))}</td><td className="p-4"><StatusBadge status={o.status} /></td><td className="p-4"><Button variant="outline" size="sm" onClick={() => setOrderId(o.id)}>Open</Button></td></tr>;
+    return <tr key={o.id} className="border-b last:border-0"><td className="p-4"><span className="font-bold">#{o.id.slice(0, 8).toUpperCase()}</span>{o.status === 'Received' && <span className="ml-2 rounded bg-secondary px-1.5 py-0.5 text-xs font-bold text-primary">NEW</span>}<div className="mt-1 text-muted-foreground">{o.guest_name ?? c?.name ?? 'Customer'}</div></td><td className="p-4 text-muted-foreground">{formatDate(o.created_at)}</td><td className="p-4 font-bold">{formatINR(Number(o.total))}</td><td className="p-4"><StatusBadge status={o.status} /></td><td className="p-4"><Button variant="outline" size="sm" onClick={() => setOrderId(o.id)}>Open</Button></td></tr>;
   })}</tbody></table>{!orders.length && <Empty>No orders found.</Empty>}</div>;
 
   return <div className="min-h-screen bg-background pb-24 md:pb-0">
@@ -130,7 +131,7 @@ export function AdminPanel() {
         {section === 'Products' && <div className="overflow-x-auto border-y bg-surface"><table className="w-full min-w-[650px] text-left text-sm"><thead className="border-b bg-muted/50 text-xs text-muted-foreground"><tr>{['Product', 'Category', 'Price', 'Availability', 'Actions'].map(t => <th key={t} className="p-4">{t}</th>)}</tr></thead><tbody>{data.products.filter(p => p.name.toLowerCase().includes(q)).map(p => <tr key={p.id} className="border-b last:border-0"><td className="p-4"><div className="flex items-center gap-3"><div className="grid size-12 shrink-0 place-items-center rounded-md border bg-surface">{images.data?.[p.id] ? <img className="size-11 object-contain" src={images.data[p.id] ?? ''} alt={p.name} /> : <Package className="size-5 text-muted-foreground" />}</div><div><p className="font-bold">{p.name}</p><p className="text-xs text-muted-foreground">{p.unit}</p></div></div></td><td className="p-4 text-muted-foreground">{data.categories.find(c => c.id === p.category_id)?.name ?? 'Uncategorized'}</td><td className="p-4 font-semibold">{formatINR(Number(p.price))}</td><td className="p-4"><label className="flex items-center gap-2"><Switch aria-label={`Availability for ${p.name}`} checked={p.in_stock} disabled={busy} onCheckedChange={checked => perform(async () => { const { data: updated, error } = await supabase.from('products').update({ in_stock: checked }).eq('id', p.id).select('id'); if (error || !updated?.length) throw new Error('Availability could not be changed'); toast.success('Availability updated'); })} /><span className="text-xs">{p.in_stock ? 'Available' : 'Out of stock'}</span></label></td><td className="p-4"><div className="flex gap-1"><Button size="icon" variant="ghost" aria-label={`Edit ${p.name}`} title="Edit product" onClick={() => openProduct(p)}><Pencil /></Button><Button size="icon" variant="ghost" className="text-destructive" aria-label={`Delete ${p.name}`} title="Delete product" onClick={() => setDeleting({ table: 'products', id: p.id, name: p.name })}><Trash2 /></Button></div></td></tr>)}</tbody></table>{!data.products.filter(p => p.name.toLowerCase().includes(q)).length && <Empty>No products found.</Empty>}</div>}
         {section === 'Categories' && <div className="border-y bg-surface">{data.categories.map(c => <div key={c.id} className="flex items-center gap-3 border-b p-4 last:border-0"><Tags className="size-5 text-primary" /><div className="min-w-0 flex-1"><p className="break-words font-bold">{c.name}</p><p className="text-xs text-muted-foreground">{data.products.filter(p => p.category_id === c.id).length} products</p></div><Button size="icon" variant="ghost" aria-label={`Rename ${c.name}`} title="Rename category" onClick={() => { setCategory(c); setCategoryName(c.name); }}><Pencil /></Button><Button size="icon" variant="ghost" className="text-destructive" aria-label={`Delete ${c.name}`} title="Delete category" onClick={() => setDeleting({ table: 'categories', id: c.id, name: c.name })}><Trash2 /></Button></div>)}{!data.categories.length && <Empty>No categories yet.</Empty>}</div>}
         {section === 'Orders' && <><label className="mb-4 flex items-center gap-2 text-sm">Status<select className="h-10 rounded-md border bg-surface px-3" value={status} onChange={e => setStatus(e.target.value)}><option>All</option>{orderStatuses.map(s => <option key={s}>{s}</option>)}</select></label><div className="border-y bg-surface">{showOrders(visibleOrders)}</div></>}
-        {section === 'Customers' && <div className="overflow-x-auto border-y bg-surface"><table className="w-full min-w-[600px] text-left text-sm"><thead className="border-b bg-muted/50 text-xs text-muted-foreground"><tr>{['Name', 'Phone', 'Address', 'Orders', ''].map(t => <th className="p-4" key={t}>{t}</th>)}</tr></thead><tbody>{data.customers.filter(c => `${c.name} ${c.phone} ${c.address}`.toLowerCase().includes(q)).map(c => <tr key={c.id} className="border-b last:border-0"><td className="p-4 font-bold">{c.name}</td><td className="p-4">{c.phone}</td><td className="max-w-xs break-words p-4 text-muted-foreground">{c.address}</td><td className="p-4 font-bold">{data.orders.filter(o => o.customer_id === c.id).length}</td><td className="p-4"><ResetPassword id={c.id} name={c.name} /></td></tr>)}</tbody></table>{!data.customers.length && <Empty>No customers yet.</Empty>}</div>}
+        {section === 'Customers' && <div className="overflow-x-auto border-y bg-surface"><table className="w-full min-w-[600px] text-left text-sm"><thead className="border-b bg-muted/50 text-xs text-muted-foreground"><tr>{['Name', 'Phone', 'Address', 'Orders'].map(t => <th className="p-4" key={t}>{t}</th>)}</tr></thead><tbody>{data.customers.filter(c => `${c.name} ${c.phone} ${c.address}`.toLowerCase().includes(q)).map(c => <tr key={c.id} className="border-b last:border-0"><td className="p-4 font-bold">{c.name}</td><td className="p-4">{c.phone}</td><td className="max-w-xs break-words p-4 text-muted-foreground">{c.address}</td><td className="p-4 font-bold">{data.orders.filter(o => o.customer_id === c.id).length}</td></tr>)}</tbody></table>{!data.customers.length && <Empty>No customers yet.</Empty>}</div>}
       </main>
     </div>
     <nav className="fixed inset-x-0 bottom-0 z-20 grid grid-cols-5 border-t bg-surface pb-[env(safe-area-inset-bottom)] md:hidden">{sections.map(s => <Button key={s.name} variant="ghost" className={`h-16 min-w-0 flex-col gap-1 rounded-none px-0 text-[10px] ${section === s.name ? 'bg-secondary text-primary' : 'text-muted-foreground'}`} onClick={() => { setSection(s.name); setSearch(''); }}><s.icon />{s.name}</Button>)}</nav>
@@ -151,24 +152,3 @@ function Gate({ title, children }: { title: string; children?: ReactNode }) { re
 function StatusBadge({ status }: { status: string }) { return <span className={`inline-flex rounded-md px-2 py-1 text-xs font-bold ${status === 'Cancelled' ? 'bg-destructive/10 text-destructive' : status === 'Delivered' ? 'bg-secondary text-primary' : 'bg-muted text-foreground'}`}>{status}</span>; }
 function formatDate(date: string) { return new Intl.DateTimeFormat('en-IN', { timeZone: 'Asia/Kolkata', day: 'numeric', month: 'short', hour: 'numeric', minute: '2-digit' }).format(new Date(date)); }
 
-function ResetPassword({ id, name }: { id: string; name: string }) {
-  const reset = useServerFn(resetCustomerPassword);
-  const [open, setOpen] = useState(false);
-  const [pw, setPw] = useState('');
-  const [busy, setBusy] = useState(false);
-  async function save() {
-    if (pw.length < 6) return void toast.error('Password must be at least 6 characters');
-    setBusy(true);
-    try { await reset({ data: { customerId: id, password: pw } }); toast.success(`Password updated for ${name}. Share it with them.`); setOpen(false); setPw(''); }
-    catch (e) { toast.error(e instanceof Error ? e.message : 'Could not reset password'); }
-    finally { setBusy(false); }
-  }
-  return <>
-    <Button size="sm" variant="outline" onClick={() => setOpen(true)}>Reset password</Button>
-    <Dialog open={open} onOpenChange={setOpen}><DialogContent>
-      <DialogHeader><DialogTitle>Reset password</DialogTitle><DialogDescription>Set a new temporary password for {name}.</DialogDescription></DialogHeader>
-      <Input type="text" value={pw} onChange={e => setPw(e.target.value)} placeholder="New temporary password" maxLength={72} />
-      <Button disabled={busy} onClick={save}>{busy ? 'Saving…' : 'Save password'}</Button>
-    </DialogContent></Dialog>
-  </>;
-}
