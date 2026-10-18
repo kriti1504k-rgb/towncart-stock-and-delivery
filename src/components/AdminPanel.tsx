@@ -13,7 +13,7 @@ import type { Tables } from '@/integrations/supabase/types';
 import { getAdminData } from '@/lib/admin.functions';
 import { useAuth } from '@/lib/auth';
 import { formatINR } from '@/lib/cart';
-import { customerContact, dashboardStats, indiaDate, orderStatuses, productSchema } from '@/lib/admin-rules';
+import { customerContact, dashboardStats, orderStatuses, productSchema } from '@/lib/admin-rules';
 import { imagePrefix, resolveProductImage } from '@/lib/product-images';
 
 const sections = [
