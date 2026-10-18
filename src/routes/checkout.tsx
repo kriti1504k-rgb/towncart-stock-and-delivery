@@ -64,7 +64,10 @@ function Checkout() {
   }
 
   async function placeOrder() {
-    if (address.trim().length < 5) return toast.error("Please enter your delivery address");
+    if (address.trim().length < 5) {
+      toast.error("Please enter your delivery address");
+      return;
+    }
     setBusy(true);
     const { error } = await supabase.rpc("place_order", {
       _address: address.trim().slice(0, 500),
@@ -72,7 +75,10 @@ function Checkout() {
       _items: lines.map((l) => ({ product_id: l.id, quantity: l.quantity })),
     });
     setBusy(false);
-    if (error) return toast.error(error.message.includes("unavailable") ? "Some items are out of stock. Please update your cart." : "Could not place order. Please try again.");
+    if (error) {
+      toast.error(error.message.includes("unavailable") ? "Some items are out of stock. Please update your cart." : "Could not place order. Please try again.");
+      return;
+    }
     clear();
     qc.invalidateQueries({ queryKey: ["orders"] });
     toast.success("Order placed! We'll confirm it shortly.");

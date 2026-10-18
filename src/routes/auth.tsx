@@ -53,12 +53,12 @@ function AuthPage() {
     try {
       if (mode === "login") {
         const p = phone.safeParse(f.phone);
-        if (!p.success) return toast.error(p.error.issues[0].message);
+        if (!p.success) return toast.error(p.error.issues[0]?.message ?? "Invalid input");
         const { error } = await supabase.auth.signInWithPassword({ email: phoneToAuthEmail(p.data), password: f.password });
         if (error) return toast.error("Wrong phone number or password");
       } else {
         const r = signupSchema.safeParse(f);
-        if (!r.success) return toast.error(r.error.issues[0].message);
+        if (!r.success) return toast.error(r.error.issues[0]?.message ?? "Invalid input");
         const { error } = await supabase.auth.signUp({
           email: phoneToAuthEmail(r.data.phone),
           password: r.data.password,
