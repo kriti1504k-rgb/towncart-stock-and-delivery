@@ -1,0 +1,4 @@
+- [ ] Enforce admin roles and image upload permissions; designate the first admin phone.
+- [ ] Build mobile-friendly dashboard, products, categories, orders, and customers at /admin.
+- [ ] Make customer catalogue changes update live.
+- [ ] Verify admin workflows and customer isolation.
