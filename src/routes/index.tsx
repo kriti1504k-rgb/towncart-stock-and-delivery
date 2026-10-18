@@ -6,6 +6,7 @@ import { supabase } from "@/integrations/supabase/client";
 import { AppShell } from "@/components/AppShell";
 import { QtyControl } from "@/components/QtyControl";
 import { formatINR } from "@/lib/cart";
+import { resolveProductImage } from "@/lib/product-images";
 
 export const Route = createFileRoute("/")({
   head: () => ({
@@ -35,10 +36,11 @@ function Home() {
   });
   const { data: products = [], isLoading } = useQuery({
     queryKey: ["products"],
+    refetchInterval: 30000,
     queryFn: async () => {
       const { data, error } = await supabase.from("products").select("*").order("name");
       if (error) throw error;
-      return data;
+      return Promise.all(data.map(async p => ({ ...p, image_url: await resolveProductImage(p.image_url) })));
     },
   });
 
@@ -92,6 +94,7 @@ function Home() {
               <div className="flex flex-1 flex-col gap-1 p-3 pt-1">
                 <h3 className="line-clamp-2 text-sm font-semibold leading-snug">{p.name}</h3>
                 <p className="text-xs text-muted-foreground">{p.unit}</p>
+                {p.description && <p className="line-clamp-2 text-xs text-muted-foreground">{p.description}</p>}
                 <div className="mt-auto flex flex-col gap-2 pt-2">
                   <span className="text-base font-extrabold">{formatINR(Number(p.price))}</span>
                   {p.in_stock ? (

@@ -1,0 +1,1 @@
+CREATE POLICY "Customers read catalogue images" ON storage.objects FOR SELECT TO anon, authenticated USING (bucket_id = 'product-images');

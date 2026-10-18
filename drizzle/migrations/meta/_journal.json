@@ -8,6 +8,20 @@
       "when": 1792312881413,
       "tag": "0000_wholesale_schema",
       "breakpoints": true
+    },
+    {
+      "idx": 1,
+      "version": "7",
+      "when": 1792316035513,
+      "tag": "0001_admin_roles_catalogue_permissions",
+      "breakpoints": true
+    },
+    {
+      "idx": 2,
+      "version": "7",
+      "when": 1792316063618,
+      "tag": "0002_customer_product_image_read",
+      "breakpoints": true
     }
   ]
 }
