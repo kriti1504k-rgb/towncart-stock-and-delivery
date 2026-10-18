@@ -5,3 +5,7 @@
 - [x] Replace customer accounts with remembered guest checkout and private confirmation/status links.
 - [x] Enforce guest order privacy in database rules and retain admin-only phone/password login.
 - [x] Verify guest checkout, tracking, remembered details, and admin access.
+- [ ] Add protected atomic stock adjustments, order deduction/restoration, and history.
+- [ ] Build inline inventory table, images, categories, stock controls, low-stock limits and CSV export.
+- [ ] Show live stock availability and enforce customer quantity limits.
+- [ ] Test inventory rules and verify admin/customer workflows on desktop and phone.
