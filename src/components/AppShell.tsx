@@ -1,0 +1,69 @@
+import { Link } from "@tanstack/react-router";
+import { Home, ShoppingCart, Package, User } from "lucide-react";
+import type { ReactNode } from "react";
+import { useCart, formatINR } from "@/lib/cart";
+import { useAuth } from "@/lib/auth";
+
+export function AppShell({ children, title, hideCartBar }: { children: ReactNode; title?: string; hideCartBar?: boolean }) {
+  const { count, total } = useCart();
+  const { session } = useAuth();
+  return (
+    <div className="mx-auto min-h-screen max-w-3xl pb-36">
+      <header className="sticky top-0 z-20 border-b bg-surface/95 backdrop-blur">
+        <div className="flex items-center justify-between gap-3 px-4 py-3">
+          <Link to="/" className="flex min-w-0 items-center gap-2">
+            <span className="grid h-9 w-9 shrink-0 place-items-center rounded-xl bg-primary text-lg font-extrabold text-primary-foreground">
+              W
+            </span>
+            <span className="truncate text-lg font-extrabold tracking-tight">
+              {title ?? "Wholesale Mart"}
+            </span>
+          </Link>
+          {!session && (
+            <Link to="/auth" className="shrink-0 rounded-lg bg-secondary px-3 py-1.5 text-sm font-semibold text-secondary-foreground">
+              Login
+            </Link>
+          )}
+        </div>
+      </header>
+      <main>{children}</main>
+
+      {!hideCartBar && count > 0 && (
+        <Link
+          to="/cart"
+          className="fixed inset-x-3 bottom-20 z-30 mx-auto flex max-w-3xl items-center justify-between rounded-xl bg-primary px-4 py-3 text-primary-foreground shadow-lg"
+        >
+          <span className="text-sm font-semibold">
+            {count} item{count > 1 ? "s" : ""} · {formatINR(total)}
+          </span>
+          <span className="flex items-center gap-1 text-sm font-bold">
+            View cart <ShoppingCart className="h-4 w-4" />
+          </span>
+        </Link>
+      )}
+
+      <nav className="fixed inset-x-0 bottom-0 z-30 border-t bg-surface">
+        <div className="mx-auto grid max-w-3xl grid-cols-4">
+          <NavItem to="/" icon={<Home className="h-5 w-5" />} label="Home" />
+          <NavItem to="/cart" icon={<ShoppingCart className="h-5 w-5" />} label={`Cart${count ? ` (${count})` : ""}`} />
+          <NavItem to="/orders" icon={<Package className="h-5 w-5" />} label="Orders" />
+          <NavItem to="/account" icon={<User className="h-5 w-5" />} label="Account" />
+        </div>
+      </nav>
+    </div>
+  );
+}
+
+function NavItem({ to, icon, label }: { to: "/" | "/cart" | "/orders" | "/account"; icon: ReactNode; label: string }) {
+  return (
+    <Link
+      to={to}
+      activeOptions={{ exact: true }}
+      className="flex flex-col items-center gap-0.5 py-2 text-xs font-medium text-muted-foreground"
+      activeProps={{ className: "text-primary" }}
+    >
+      {icon}
+      {label}
+    </Link>
+  );
+}
