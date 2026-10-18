@@ -14,6 +14,21 @@ export type Database = {
   }
   public: {
     Tables: {
+      admin_phone_reservations: {
+        Row: {
+          auth_email: string
+          created_at: string
+        }
+        Insert: {
+          auth_email: string
+          created_at?: string
+        }
+        Update: {
+          auth_email?: string
+          created_at?: string
+        }
+        Relationships: []
+      }
       categories: {
         Row: {
           id: string
@@ -146,6 +161,7 @@ export type Database = {
         Row: {
           category_id: string | null
           created_at: string
+          description: string
           id: string
           image_url: string | null
           in_stock: boolean
@@ -156,6 +172,7 @@ export type Database = {
         Insert: {
           category_id?: string | null
           created_at?: string
+          description?: string
           id?: string
           image_url?: string | null
           in_stock?: boolean
@@ -166,6 +183,7 @@ export type Database = {
         Update: {
           category_id?: string | null
           created_at?: string
+          description?: string
           id?: string
           image_url?: string | null
           in_stock?: boolean
@@ -183,17 +201,43 @@ export type Database = {
           },
         ]
       }
+      user_roles: {
+        Row: {
+          id: string
+          role: Database["public"]["Enums"]["app_role"]
+          user_id: string
+        }
+        Insert: {
+          id?: string
+          role: Database["public"]["Enums"]["app_role"]
+          user_id: string
+        }
+        Update: {
+          id?: string
+          role?: Database["public"]["Enums"]["app_role"]
+          user_id?: string
+        }
+        Relationships: []
+      }
     }
     Views: {
       [_ in never]: never
     }
     Functions: {
+      has_role: {
+        Args: {
+          _role: Database["public"]["Enums"]["app_role"]
+          _user_id: string
+        }
+        Returns: boolean
+      }
       place_order: {
         Args: { _address: string; _items: Json; _note: string }
         Returns: string
       }
     }
     Enums: {
+      app_role: "admin" | "user"
       order_status:
         | "Received"
         | "Confirmed"
@@ -327,6 +371,7 @@ export type CompositeTypes<
 export const Constants = {
   public: {
     Enums: {
+      app_role: ["admin", "user"],
       order_status: [
         "Received",
         "Confirmed",
