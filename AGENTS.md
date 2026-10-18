@@ -15,7 +15,7 @@
 - Customer rows are created by a DB trigger on signup from auth metadata (name, phone, contact_email, address).
 - Orders are only created via the `place_order` DB function so prices come from the products table, not the browser.
 - Cart lives in localStorage (src/lib/cart.tsx); products/categories are publicly readable, orders readable only by their owner or a database-marked admin.
-- Admin routes live under the client-only authenticated layout; admin server reads verify user_roles and mutations use the user-scoped client with RLS, never a privileged client, to enforce authorization on every request.
+- Admin routes live under the client-only authenticated layout; admin server reads verify user_roles and mutations use the user-scoped client with RLS, never a privileged client, to enforce authorization on every request. Sole exception: admin password reset needs the auth admin API, so it verifies has_role via the user client before loading the privileged client inside the handler.
 - First-admin reservations are service-only and matched to the actual derived auth email at signup, never to editable customer metadata, to prevent self-promotion.
 - Uploaded catalogue images use private Storage object references and signed read URLs because workspace policy blocks public buckets.
 - Catalogue and order changes invalidate queries through Realtime, with polling as a reconnection fallback.

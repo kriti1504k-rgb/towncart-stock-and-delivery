@@ -117,6 +117,14 @@ function AuthPage() {
               {busy ? "Please wait…" : mode === "login" ? "Login" : "Create account"}
             </button>
           </form>
+          {mode === "login" && (
+            <p className="mt-4 text-center text-sm text-muted-foreground">
+              Forgot password? Contact us on{" "}
+              <a href="https://wa.me/918194096344" target="_blank" rel="noopener noreferrer" className="font-bold text-primary underline">
+                +91 81940 96344 (WhatsApp)
+              </a>
+            </p>
+          )}
         </div>
       </div>
     </AppShell>
