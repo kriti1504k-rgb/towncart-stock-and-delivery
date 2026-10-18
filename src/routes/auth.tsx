@@ -7,9 +7,10 @@ import { AppShell } from "@/components/AppShell";
 import { phoneToAuthEmail, useAuth } from "@/lib/auth";
 
 export const Route = createFileRoute("/auth")({
-  validateSearch: (s: Record<string, unknown>) => ({
-    redirect: typeof s.redirect === "string" && s.redirect.startsWith("/") ? s.redirect : undefined,
-  }),
+  validateSearch: (s: Record<string, unknown>): { redirect?: string } => {
+    const r = s["redirect"];
+    return { redirect: typeof r === "string" && r.startsWith("/") && !r.startsWith("//") ? r : undefined };
+  },
   head: () => ({
     meta: [
       { title: "Login or Sign up — Wholesale Mart" },
@@ -47,18 +48,18 @@ function AuthPage() {
   const set = (k: keyof typeof f) => (e: React.ChangeEvent<HTMLInputElement | HTMLTextAreaElement>) =>
     setF({ ...f, [k]: e.target.value });
 
-  async function submit(e: React.FormEvent) {
+  async function submit(e: React.FormEvent): Promise<void> {
     e.preventDefault();
     setBusy(true);
     try {
       if (mode === "login") {
         const p = phone.safeParse(f.phone);
-        if (!p.success) return toast.error(p.error.issues[0]?.message ?? "Invalid input");
+        if (!p.success) return void toast.error(p.error.issues[0]?.message ?? "Invalid input");
         const { error } = await supabase.auth.signInWithPassword({ email: phoneToAuthEmail(p.data), password: f.password });
-        if (error) return toast.error("Wrong phone number or password");
+        if (error) return void toast.error("Wrong phone number or password");
       } else {
         const r = signupSchema.safeParse(f);
-        if (!r.success) return toast.error(r.error.issues[0]?.message ?? "Invalid input");
+        if (!r.success) return void toast.error(r.error.issues[0]?.message ?? "Invalid input");
         const { error } = await supabase.auth.signUp({
           email: phoneToAuthEmail(r.data.phone),
           password: r.data.password,
@@ -67,7 +68,7 @@ function AuthPage() {
           },
         });
         if (error) {
-          return toast.error(/registered|exists/i.test(error.message) ? "This phone number is already registered" : error.message);
+          return void toast.error(/registered|exists/i.test(error.message) ? "This phone number is already registered" : error.message);
         }
         toast.success("Account created!");
       }
