@@ -15,6 +15,13 @@
       "when": 1792316035513,
       "tag": "0001_admin_roles_catalogue_permissions",
       "breakpoints": true
+    },
+    {
+      "idx": 2,
+      "version": "7",
+      "when": 1792316063618,
+      "tag": "0002_customer_product_image_read",
+      "breakpoints": true
     }
   ]
 }
