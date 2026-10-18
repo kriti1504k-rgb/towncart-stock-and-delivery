@@ -7,7 +7,7 @@ import { AppShell } from "@/components/AppShell";
 import { phoneToAuthEmail, useAuth } from "@/lib/auth";
 
 export const Route = createFileRoute("/auth")({
-  validateSearch: (s: Record<string, unknown>): { redirect?: string } => {
+  validateSearch: (s: Record<string, unknown>): { redirect?: string | undefined } => {
     const r = s["redirect"];
     return { redirect: typeof r === "string" && r.startsWith("/") && !r.startsWith("//") ? r : undefined };
   },
