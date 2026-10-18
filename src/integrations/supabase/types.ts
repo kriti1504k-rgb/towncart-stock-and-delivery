@@ -119,11 +119,37 @@ export type Database = {
           },
         ]
       }
+      order_tracking_keys: {
+        Row: {
+          order_id: string
+          token_hash: string
+        }
+        Insert: {
+          order_id: string
+          token_hash: string
+        }
+        Update: {
+          order_id?: string
+          token_hash?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "order_tracking_keys_order_id_fkey"
+            columns: ["order_id"]
+            isOneToOne: true
+            referencedRelation: "orders"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       orders: {
         Row: {
           created_at: string
           customer_id: string
           delivery_address: string
+          guest_email: string | null
+          guest_name: string | null
+          guest_phone: string | null
           id: string
           note: string | null
           status: Database["public"]["Enums"]["order_status"]
@@ -133,6 +159,9 @@ export type Database = {
           created_at?: string
           customer_id: string
           delivery_address: string
+          guest_email?: string | null
+          guest_name?: string | null
+          guest_phone?: string | null
           id?: string
           note?: string | null
           status?: Database["public"]["Enums"]["order_status"]
@@ -142,6 +171,9 @@ export type Database = {
           created_at?: string
           customer_id?: string
           delivery_address?: string
+          guest_email?: string | null
+          guest_name?: string | null
+          guest_phone?: string | null
           id?: string
           note?: string | null
           status?: Database["public"]["Enums"]["order_status"]
@@ -231,10 +263,23 @@ export type Database = {
         }
         Returns: boolean
       }
+      place_guest_order: {
+        Args: {
+          _address: string
+          _email: string
+          _items: Json
+          _name: string
+          _note: string
+          _phone: string
+          _token: string
+        }
+        Returns: string
+      }
       place_order: {
         Args: { _address: string; _items: Json; _note: string }
         Returns: string
       }
+      track_guest_order: { Args: { _token: string }; Returns: Json }
     }
     Enums: {
       app_role: "admin" | "user"
