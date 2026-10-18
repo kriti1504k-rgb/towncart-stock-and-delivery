@@ -10,7 +10,7 @@ import { Switch } from '@/components/ui/switch';
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogDescription } from '@/components/ui/dialog';
 import { supabase } from '@/integrations/supabase/client';
 import type { Tables } from '@/integrations/supabase/types';
-import { getAdminData } from '@/lib/admin.functions';
+import { getAdminData, resetCustomerPassword } from '@/lib/admin.functions';
 import { useAuth } from '@/lib/auth';
 import { formatINR } from '@/lib/cart';
 import { customerContact, dashboardStats, orderStatuses, productSchema } from '@/lib/admin-rules';
@@ -130,7 +130,7 @@ export function AdminPanel() {
         {section === 'Products' && <div className="overflow-x-auto border-y bg-surface"><table className="w-full min-w-[650px] text-left text-sm"><thead className="border-b bg-muted/50 text-xs text-muted-foreground"><tr>{['Product', 'Category', 'Price', 'Availability', 'Actions'].map(t => <th key={t} className="p-4">{t}</th>)}</tr></thead><tbody>{data.products.filter(p => p.name.toLowerCase().includes(q)).map(p => <tr key={p.id} className="border-b last:border-0"><td className="p-4"><div className="flex items-center gap-3"><div className="grid size-12 shrink-0 place-items-center rounded-md border bg-surface">{images.data?.[p.id] ? <img className="size-11 object-contain" src={images.data[p.id] ?? ''} alt={p.name} /> : <Package className="size-5 text-muted-foreground" />}</div><div><p className="font-bold">{p.name}</p><p className="text-xs text-muted-foreground">{p.unit}</p></div></div></td><td className="p-4 text-muted-foreground">{data.categories.find(c => c.id === p.category_id)?.name ?? 'Uncategorized'}</td><td className="p-4 font-semibold">{formatINR(Number(p.price))}</td><td className="p-4"><label className="flex items-center gap-2"><Switch aria-label={`Availability for ${p.name}`} checked={p.in_stock} disabled={busy} onCheckedChange={checked => perform(async () => { const { data: updated, error } = await supabase.from('products').update({ in_stock: checked }).eq('id', p.id).select('id'); if (error || !updated?.length) throw new Error('Availability could not be changed'); toast.success('Availability updated'); })} /><span className="text-xs">{p.in_stock ? 'Available' : 'Out of stock'}</span></label></td><td className="p-4"><div className="flex gap-1"><Button size="icon" variant="ghost" aria-label={`Edit ${p.name}`} title="Edit product" onClick={() => openProduct(p)}><Pencil /></Button><Button size="icon" variant="ghost" className="text-destructive" aria-label={`Delete ${p.name}`} title="Delete product" onClick={() => setDeleting({ table: 'products', id: p.id, name: p.name })}><Trash2 /></Button></div></td></tr>)}</tbody></table>{!data.products.filter(p => p.name.toLowerCase().includes(q)).length && <Empty>No products found.</Empty>}</div>}
         {section === 'Categories' && <div className="border-y bg-surface">{data.categories.map(c => <div key={c.id} className="flex items-center gap-3 border-b p-4 last:border-0"><Tags className="size-5 text-primary" /><div className="min-w-0 flex-1"><p className="break-words font-bold">{c.name}</p><p className="text-xs text-muted-foreground">{data.products.filter(p => p.category_id === c.id).length} products</p></div><Button size="icon" variant="ghost" aria-label={`Rename ${c.name}`} title="Rename category" onClick={() => { setCategory(c); setCategoryName(c.name); }}><Pencil /></Button><Button size="icon" variant="ghost" className="text-destructive" aria-label={`Delete ${c.name}`} title="Delete category" onClick={() => setDeleting({ table: 'categories', id: c.id, name: c.name })}><Trash2 /></Button></div>)}{!data.categories.length && <Empty>No categories yet.</Empty>}</div>}
         {section === 'Orders' && <><label className="mb-4 flex items-center gap-2 text-sm">Status<select className="h-10 rounded-md border bg-surface px-3" value={status} onChange={e => setStatus(e.target.value)}><option>All</option>{orderStatuses.map(s => <option key={s}>{s}</option>)}</select></label><div className="border-y bg-surface">{showOrders(visibleOrders)}</div></>}
-        {section === 'Customers' && <div className="overflow-x-auto border-y bg-surface"><table className="w-full min-w-[600px] text-left text-sm"><thead className="border-b bg-muted/50 text-xs text-muted-foreground"><tr>{['Name', 'Phone', 'Address', 'Orders'].map(t => <th className="p-4" key={t}>{t}</th>)}</tr></thead><tbody>{data.customers.filter(c => `${c.name} ${c.phone} ${c.address}`.toLowerCase().includes(q)).map(c => <tr key={c.id} className="border-b last:border-0"><td className="p-4 font-bold">{c.name}</td><td className="p-4">{c.phone}</td><td className="max-w-xs break-words p-4 text-muted-foreground">{c.address}</td><td className="p-4 font-bold">{data.orders.filter(o => o.customer_id === c.id).length}</td></tr>)}</tbody></table>{!data.customers.length && <Empty>No customers yet.</Empty>}</div>}
+        {section === 'Customers' && <div className="overflow-x-auto border-y bg-surface"><table className="w-full min-w-[600px] text-left text-sm"><thead className="border-b bg-muted/50 text-xs text-muted-foreground"><tr>{['Name', 'Phone', 'Address', 'Orders', ''].map(t => <th className="p-4" key={t}>{t}</th>)}</tr></thead><tbody>{data.customers.filter(c => `${c.name} ${c.phone} ${c.address}`.toLowerCase().includes(q)).map(c => <tr key={c.id} className="border-b last:border-0"><td className="p-4 font-bold">{c.name}</td><td className="p-4">{c.phone}</td><td className="max-w-xs break-words p-4 text-muted-foreground">{c.address}</td><td className="p-4 font-bold">{data.orders.filter(o => o.customer_id === c.id).length}</td><td className="p-4"><ResetPassword id={c.id} name={c.name} /></td></tr>)}</tbody></table>{!data.customers.length && <Empty>No customers yet.</Empty>}</div>}
       </main>
     </div>
     <nav className="fixed inset-x-0 bottom-0 z-20 grid grid-cols-5 border-t bg-surface pb-[env(safe-area-inset-bottom)] md:hidden">{sections.map(s => <Button key={s.name} variant="ghost" className={`h-16 min-w-0 flex-col gap-1 rounded-none px-0 text-[10px] ${section === s.name ? 'bg-secondary text-primary' : 'text-muted-foreground'}`} onClick={() => { setSection(s.name); setSearch(''); }}><s.icon />{s.name}</Button>)}</nav>
@@ -150,3 +150,25 @@ function Empty({ children }: { children: ReactNode }) { return <p className="px-
 function Gate({ title, children }: { title: string; children?: ReactNode }) { return <div className="flex min-h-screen flex-col items-center justify-center gap-4 px-4 text-center"><h1 className="text-2xl font-bold">{title}</h1>{children}</div>; }
 function StatusBadge({ status }: { status: string }) { return <span className={`inline-flex rounded-md px-2 py-1 text-xs font-bold ${status === 'Cancelled' ? 'bg-destructive/10 text-destructive' : status === 'Delivered' ? 'bg-secondary text-primary' : 'bg-muted text-foreground'}`}>{status}</span>; }
 function formatDate(date: string) { return new Intl.DateTimeFormat('en-IN', { timeZone: 'Asia/Kolkata', day: 'numeric', month: 'short', hour: 'numeric', minute: '2-digit' }).format(new Date(date)); }
+
+function ResetPassword({ id, name }: { id: string; name: string }) {
+  const reset = useServerFn(resetCustomerPassword);
+  const [open, setOpen] = useState(false);
+  const [pw, setPw] = useState('');
+  const [busy, setBusy] = useState(false);
+  async function save() {
+    if (pw.length < 6) return void toast.error('Password must be at least 6 characters');
+    setBusy(true);
+    try { await reset({ data: { customerId: id, password: pw } }); toast.success(`Password updated for ${name}. Share it with them.`); setOpen(false); setPw(''); }
+    catch (e) { toast.error(e instanceof Error ? e.message : 'Could not reset password'); }
+    finally { setBusy(false); }
+  }
+  return <>
+    <Button size="sm" variant="outline" onClick={() => setOpen(true)}>Reset password</Button>
+    <Dialog open={open} onOpenChange={setOpen}><DialogContent>
+      <DialogHeader><DialogTitle>Reset password</DialogTitle><DialogDescription>Set a new temporary password for {name}.</DialogDescription></DialogHeader>
+      <Input type="text" value={pw} onChange={e => setPw(e.target.value)} placeholder="New temporary password" maxLength={72} />
+      <Button disabled={busy} onClick={save}>{busy ? 'Saving…' : 'Save password'}</Button>
+    </DialogContent></Dialog>
+  </>;
+}
