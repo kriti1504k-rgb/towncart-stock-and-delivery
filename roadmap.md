@@ -2,3 +2,6 @@
 - [x] Build mobile-friendly dashboard, products, categories, orders, and customers at /admin.
 - [x] Make customer catalogue changes update live.
 - [x] Verify admin workflows and customer isolation.
+- [x] Replace customer accounts with remembered guest checkout and private confirmation/status links.
+- [x] Enforce guest order privacy in database rules and retain admin-only phone/password login.
+- [x] Verify guest checkout, tracking, remembered details, and admin access.

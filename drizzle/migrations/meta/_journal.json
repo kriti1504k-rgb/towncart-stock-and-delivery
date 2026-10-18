@@ -29,6 +29,20 @@
       "when": 1792319852442,
       "tag": "0003_restrict_catalogue_image_reads",
       "breakpoints": true
+    },
+    {
+      "idx": 4,
+      "version": "7",
+      "when": 1792325485481,
+      "tag": "0004_guest_checkout_private_tracking",
+      "breakpoints": true
+    },
+    {
+      "idx": 5,
+      "version": "7",
+      "when": 1792325758008,
+      "tag": "0005_protect_guest_order_snapshot",
+      "breakpoints": true
     }
   ]
 }

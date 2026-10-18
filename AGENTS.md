@@ -11,11 +11,13 @@
 
 # Project rules
 
-- Customers log in with phone + password; auth uses a derived private email (`phoneToAuthEmail` in src/lib/auth.tsx) because auth requires an email — never change the format or existing users can't log in.
-- Customer rows are created by a DB trigger on signup from auth metadata (name, phone, contact_email, address).
-- Orders are only created via the `place_order` DB function so prices come from the products table, not the browser.
-- Cart lives in localStorage (src/lib/cart.tsx); products/categories are publicly readable, orders readable only by their owner or a database-marked admin.
-- Admin routes live under the client-only authenticated layout; admin server reads verify user_roles and mutations use the user-scoped client with RLS, never a privileged client, to enforce authorization on every request. Sole exception: admin password reset needs the auth admin API, so it verifies has_role via the user client before loading the privileged client inside the handler.
+- Admin phone/password login uses the existing `phoneToAuthEmail` derived email format; preserve it so existing admins can sign in. Public signup is disabled.
+- Guest checkout details and private order links are stored only in browser localStorage for repeat visits; customer rows are upserted by phone inside the guest-order transaction.
+- Guest orders are created through the service-only `place_guest_order` DB function after schema validation; the transaction validates stock and takes prices from the products table.
+- Cart lives in localStorage (src/lib/cart.tsx); products/categories are publicly readable, direct order/customer/item reads are admin-only; guests read one order through `track_guest_order` using a random 256-bit capability whose hash is stored in a service-only table.
+- Admin routes live under the client-only authenticated layout; admin server reads verify user_roles and mutations use the user-scoped client with RLS, never a privileged client, to enforce authorization on every request. Guest order creation is the sole public privileged operation and is restricted to the validating atomic DB function.
 - First-admin reservations are service-only and matched to the actual derived auth email at signup, never to editable customer metadata, to prevent self-promotion.
 - Uploaded catalogue images use private Storage object references and signed read URLs because workspace policy blocks public buckets.
 - Catalogue and order changes invalidate queries through Realtime, with polling as a reconnection fallback.
+
+- Order tracking lives at `/order/$token` with noindex, no-referrer, no-store responses and no contact-list projection; capabilities are never included in admin data queries.
