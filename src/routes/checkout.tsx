@@ -20,7 +20,7 @@ export const Route = createFileRoute('/checkout')({
 });
 
 function Checkout() {
-  const { lines, total, clear } = useCart();
+  const { lines, total, clear, stockReady, stockProblems } = useCart();
   const navigate = useNavigate();
   const place = useServerFn(placeGuestOrder);
   const [details, setDetails] = useState<GuestDetails>({ name: '', phone: '', email: '', address: '' });
@@ -42,6 +42,7 @@ function Checkout() {
   async function submit(event: React.FormEvent) {
     event.preventDefault();
     if (busy) return;
+    if (!stockReady || stockProblems.length) return void toast.error('Stock has changed. Please update your cart.');
     const parsed = guestDetailsSchema.safeParse(details);
     if (!parsed.success) return void toast.error(parsed.error.issues[0]?.message ?? 'Check your details');
     setBusy(true);
@@ -61,6 +62,7 @@ function Checkout() {
   return <AppShell title="Checkout" hideCartBar>
     <form onSubmit={submit} className="space-y-5 px-4 py-5">
       <h1 className="text-xl font-extrabold">Delivery details</h1>
+      {stockReady && stockProblems.length > 0 && <p role="alert" className="text-sm text-destructive">Stock has changed. <Link to="/cart" className="underline">Update your cart</Link> before placing this order.</p>}
       <label className="block space-y-1 text-sm font-semibold"><span>Name *</span><input required maxLength={100} autoComplete="name" className={input} value={details.name} onChange={e => setDetails({ ...details, name: e.target.value })} /></label>
       <label className="block space-y-1 text-sm font-semibold"><span>Phone number *</span><div className="flex items-center rounded-lg border bg-surface"><span className="pl-3 text-muted-foreground">+91</span><input required pattern="[0-9]{10}" inputMode="numeric" maxLength={10} autoComplete="tel-national" className="min-w-0 flex-1 bg-transparent px-2 py-3 text-base outline-none" value={details.phone} onChange={e => setDetails({ ...details, phone: e.target.value.replace(/\D/g, '') })} /></div></label>
       <label className="block space-y-1 text-sm font-semibold"><span>Email (optional)</span><input type="email" maxLength={255} autoComplete="email" className={input} value={details.email} onChange={e => setDetails({ ...details, email: e.target.value })} /></label>
@@ -68,7 +70,7 @@ function Checkout() {
       <label className="block space-y-1 text-sm font-semibold"><span>Note (optional)</span><textarea rows={2} maxLength={500} className={input} value={note} onChange={e => setNote(e.target.value)} /></label>
       <section className="space-y-2 border-y py-4"><h2 className="font-bold">Order summary</h2>{lines.map(l => <div key={l.id} className="flex justify-between gap-3 text-sm"><span className="min-w-0 break-words">{l.quantity} × {l.name}</span><span className="shrink-0 font-semibold">{formatINR(l.price * l.quantity)}</span></div>)}<div className="flex justify-between border-t pt-3 text-lg font-extrabold"><span>Total</span><span>{formatINR(total)}</span></div></section>
       <p className="rounded-lg bg-secondary p-4 text-sm font-semibold text-secondary-foreground">Payment: Cash or UPI on delivery</p>
-      <Button type="submit" disabled={busy || !loaded} className="h-12 w-full text-base font-bold">{busy ? 'Placing order…' : `Place Order · ${formatINR(total)}`}</Button>
+      <Button type="submit" disabled={busy || !loaded || !stockReady || !!stockProblems.length} className="h-12 w-full text-base font-bold">{busy ? 'Placing order…' : `Place Order · ${formatINR(total)}`}</Button>
     </form>
   </AppShell>;
 }

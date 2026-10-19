@@ -19,7 +19,7 @@ export const Route = createFileRoute("/cart")({
 });
 
 function CartPage() {
-  const { lines, total, setQty } = useCart();
+  const { lines, total, setQty, stock, stockReady, stockProblems } = useCart();
   return (
     <AppShell title="Cart" hideCartBar>
       {lines.length === 0 ? (
@@ -31,6 +31,7 @@ function CartPage() {
         </div>
       ) : (
         <div className="space-y-3 px-4 py-4">
+          {stockReady && stockProblems.length > 0 && <p role="alert" className="text-sm text-destructive">Stock has changed. Reduce the highlighted quantities or remove unavailable items.</p>}
           {lines.map((l) => (
             <div key={l.id} className="card-elevated flex items-center gap-3 p-3">
               {l.image_url && <img src={l.image_url} alt={l.name} className="h-16 w-16 shrink-0 rounded-lg object-contain" />}
@@ -38,6 +39,7 @@ function CartPage() {
                 <p className="truncate font-semibold">{l.name}</p>
                 <p className="text-xs text-muted-foreground">{l.unit} · {formatINR(l.price)}</p>
                 <p className="mt-1 text-sm font-bold">{formatINR(l.price * l.quantity)}</p>
+                {stockReady && l.quantity > stock(l.id) && <p className="mt-1 text-xs font-semibold text-destructive">Only {stock(l.id)} available</p>}
               </div>
               <div className="flex w-28 shrink-0 flex-col items-end gap-2">
                 <QtyControl product={l} />
