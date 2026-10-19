@@ -19,5 +19,7 @@
 - First-admin reservations are service-only and matched to the actual derived auth email at signup, never to editable customer metadata, to prevent self-promotion.
 - Uploaded catalogue images use private Storage object references and signed read URLs because workspace policy blocks public buckets.
 - Catalogue and order changes invalidate queries through Realtime, with polling as a reconnection fallback.
+- Inventory table lives in a separate InventoryTable component; stock quantities determine availability and CSV export stays browser-side.
+- Stock mutations use row-locked database transactions and an immutable admin-readable stock ledger; order cancellation/restoration is triggered atomically, and legacy orders are excluded because they never deducted inventory.
 
 - Order tracking lives at `/order/$token` with noindex, no-referrer, no-store responses and no contact-list projection; capabilities are never included in admin data queries.
