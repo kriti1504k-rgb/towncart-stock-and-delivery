@@ -64,11 +64,15 @@
 @theme inline {
   --font-sans: "Manrope", ui-sans-serif, system-ui, sans-serif;
   --color-success: var(--success);
+  --color-warning: var(--warning);
+  --color-warning-surface: var(--warning-surface);
   --color-surface: var(--surface);
   --shadow-card: 0 1px 2px oklch(0.3 0.05 150 / 0.06), 0 4px 14px oklch(0.3 0.05 150 / 0.06);
 }
 
 :root {
+  --warning: oklch(0.57 0.16 55);
+  --warning-surface: oklch(0.97 0.035 70);
   --radius: 0.875rem;
   --background: oklch(0.985 0.006 150);
   --foreground: oklch(0.22 0.03 155);
@@ -115,6 +119,8 @@
     -webkit-tap-highlight-color: transparent;
   }
 }
+
+.dark { --warning: oklch(0.8 0.15 65); --warning-surface: oklch(0.28 0.055 60); }
 
 @utility card-elevated {
   background: var(--card);
