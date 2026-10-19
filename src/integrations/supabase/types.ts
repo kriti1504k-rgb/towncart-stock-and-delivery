@@ -151,8 +151,10 @@ export type Database = {
           guest_name: string | null
           guest_phone: string | null
           id: string
+          inventory_managed: boolean
           note: string | null
           status: Database["public"]["Enums"]["order_status"]
+          stock_committed: boolean
           total: number
         }
         Insert: {
@@ -163,8 +165,10 @@ export type Database = {
           guest_name?: string | null
           guest_phone?: string | null
           id?: string
+          inventory_managed?: boolean
           note?: string | null
           status?: Database["public"]["Enums"]["order_status"]
+          stock_committed?: boolean
           total?: number
         }
         Update: {
@@ -175,8 +179,10 @@ export type Database = {
           guest_name?: string | null
           guest_phone?: string | null
           id?: string
+          inventory_managed?: boolean
           note?: string | null
           status?: Database["public"]["Enums"]["order_status"]
+          stock_committed?: boolean
           total?: number
         }
         Relationships: [
@@ -197,8 +203,10 @@ export type Database = {
           id: string
           image_url: string | null
           in_stock: boolean
+          low_stock_threshold: number
           name: string
           price: number
+          stock_quantity: number
           unit: string
         }
         Insert: {
@@ -208,8 +216,10 @@ export type Database = {
           id?: string
           image_url?: string | null
           in_stock?: boolean
+          low_stock_threshold?: number
           name: string
           price: number
+          stock_quantity?: number
           unit: string
         }
         Update: {
@@ -219,8 +229,10 @@ export type Database = {
           id?: string
           image_url?: string | null
           in_stock?: boolean
+          low_stock_threshold?: number
           name?: string
           price?: number
+          stock_quantity?: number
           unit?: string
         }
         Relationships: [
@@ -229,6 +241,57 @@ export type Database = {
             columns: ["category_id"]
             isOneToOne: false
             referencedRelation: "categories"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      stock_history: {
+        Row: {
+          changed_by: string | null
+          created_at: string
+          id: string
+          order_id: string | null
+          product_id: string | null
+          product_name: string
+          quantity_change: number
+          reason: string
+          stock_after: number
+        }
+        Insert: {
+          changed_by?: string | null
+          created_at?: string
+          id?: string
+          order_id?: string | null
+          product_id?: string | null
+          product_name: string
+          quantity_change: number
+          reason: string
+          stock_after: number
+        }
+        Update: {
+          changed_by?: string | null
+          created_at?: string
+          id?: string
+          order_id?: string | null
+          product_id?: string | null
+          product_name?: string
+          quantity_change?: number
+          reason?: string
+          stock_after?: number
+        }
+        Relationships: [
+          {
+            foreignKeyName: "stock_history_order_id_fkey"
+            columns: ["order_id"]
+            isOneToOne: false
+            referencedRelation: "orders"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "stock_history_product_id_fkey"
+            columns: ["product_id"]
+            isOneToOne: false
+            referencedRelation: "products"
             referencedColumns: ["id"]
           },
         ]
@@ -256,6 +319,15 @@ export type Database = {
       [_ in never]: never
     }
     Functions: {
+      adjust_product_stock: {
+        Args: {
+          _absolute?: boolean
+          _product_id: string
+          _quantity: number
+          _reason: string
+        }
+        Returns: number
+      }
       has_role: {
         Args: {
           _role: Database["public"]["Enums"]["app_role"]
