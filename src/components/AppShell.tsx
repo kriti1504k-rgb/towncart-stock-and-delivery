@@ -1,5 +1,5 @@
 import { Link } from "@tanstack/react-router";
-import { Home, ShoppingCart, Package, ShieldCheck } from "lucide-react";
+import { Home, ShoppingCart, User } from "lucide-react";
 import type { ReactNode } from "react";
 import { useCart, formatINR } from "@/lib/cart";
 
@@ -21,7 +21,6 @@ export function AppShell({ children, title, hideCartBar }: { children: ReactNode
         </div>
       </header>
       <main>{children}</main>
-      <div className="flex justify-center px-4 py-6"><Link to="/admin" className="flex items-center gap-1 text-xs text-muted-foreground"><ShieldCheck className="size-3" />Admin</Link></div>
 
       {!hideCartBar && count > 0 && (
         <Link
@@ -41,7 +40,7 @@ export function AppShell({ children, title, hideCartBar }: { children: ReactNode
         <div className="mx-auto grid max-w-3xl grid-cols-3">
           <NavItem to="/" icon={<Home className="h-5 w-5" />} label="Home" />
           <NavItem to="/cart" icon={<ShoppingCart className="h-5 w-5" />} label={`Cart${count ? ` (${count})` : ""}`} />
-          <NavItem to="/orders" icon={<Package className="h-5 w-5" />} label="Orders" />
+          <NavItem to="/orders" icon={<User className="h-5 w-5" />} label="Orders" />
         </div>
       </nav>
     </div>
