@@ -147,6 +147,9 @@ export type Database = {
           created_at: string
           customer_id: string
           delivery_address: string
+          delivery_lat: number | null
+          delivery_lng: number | null
+          guest_alt_phone: string | null
           guest_email: string | null
           guest_name: string | null
           guest_phone: string | null
@@ -161,6 +164,9 @@ export type Database = {
           created_at?: string
           customer_id: string
           delivery_address: string
+          delivery_lat?: number | null
+          delivery_lng?: number | null
+          guest_alt_phone?: string | null
           guest_email?: string | null
           guest_name?: string | null
           guest_phone?: string | null
@@ -175,6 +181,9 @@ export type Database = {
           created_at?: string
           customer_id?: string
           delivery_address?: string
+          delivery_lat?: number | null
+          delivery_lng?: number | null
+          guest_alt_phone?: string | null
           guest_email?: string | null
           guest_name?: string | null
           guest_phone?: string | null
@@ -334,6 +343,10 @@ export type Database = {
           _user_id: string
         }
         Returns: boolean
+      }
+      set_order_extras: {
+        Args: { _alt_phone: string | null; _lat: number | null; _lng: number | null; _order: string }
+        Returns: undefined
       }
       place_guest_order: {
         Args: {
