@@ -16,6 +16,14 @@ export const placeGuestOrder = createServerFn({ method: 'POST' })
       _note: data.note, _items: data.items, _token: token,
     });
     if (error || !id) throw new Error(error?.message.includes('unavailable') ? 'Some items are out of stock. Please update your cart.' : 'Could not place order. Please try again.');
+    // Optional extras (alternate phone, map pin). Best effort: the order is already safely placed.
+    const hasPin = data.lat !== null && data.lng !== null;
+    if (data.alt_phone || hasPin) {
+      const { error: extrasError } = await supabaseAdmin.rpc('set_order_extras', {
+        _order: id, _alt_phone: data.alt_phone, _lat: hasPin ? data.lat : null, _lng: hasPin ? data.lng : null,
+      });
+      if (extrasError) console.error('Could not save order extras', extrasError.message);
+    }
     return { id, token };
   });
 

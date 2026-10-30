@@ -17,6 +17,7 @@ const hi: Record<string, string> = {
   'Checking admin access…': 'एडमिन एक्सेस जाँच रहे हैं…', 'Admin panel could not load': 'एडमिन पैनल नहीं खुल पाया',
   'Try again': 'फिर कोशिश करें', 'Access denied': 'प्रवेश नहीं मिला',
   'This account does not have admin access.': 'इस अकाउंट के पास एडमिन अधिकार नहीं है।', 'Return to shop': 'दुकान पर वापस जाएं',
+  'Alternate phone': 'दूसरा फोन नंबर', 'Call alternate number': 'दूसरे नंबर पर कॉल करें', 'Open location in Maps': 'मैप में लोकेशन खोलें',
   // Dashboard
   "Today's new orders": 'आज के नए ऑर्डर', 'Pending orders': 'बाकी ऑर्डर', 'Total orders': 'कुल ऑर्डर', 'Sales this week': 'इस हफ्ते की बिक्री',
   'Latest orders': 'नए ऑर्डर', 'View all': 'सब देखें',
