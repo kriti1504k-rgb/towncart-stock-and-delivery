@@ -22,7 +22,10 @@ Make a fresh database of your own (about 15 minutes). Nothing real is lost: it o
    - Password: a strong one. Tick **Auto Confirm User**. Create.
    - SQL Editor -> run (use the same email):
      INSERT INTO public.user_roles (user_id, role) SELECT id, 'admin' FROM auth.users WHERE email = 'p9876543210@phone.local';
-4. Optional but recommended: Authentication -> Sign In / Providers -> turn OFF "Allow new users to sign up".
+4. Customer accounts need these two Supabase settings (Authentication -> Sign In / Providers):
+   - "Allow new users to sign up": keep it ON (customers create their own accounts).
+   - Email provider -> "Confirm email": turn it OFF. Customer logins use a private phone-based address, so nobody can click a confirmation email.
+   Then run `supabase-update-0008.sql` once in the SQL Editor (it is safe to run again).
 5. Open the file `.env` in your GitHub repo (pencil icon) and replace the 6 lines with the new project's values (Supabase -> Project Settings -> API / General):
    SUPABASE_PROJECT_ID, SUPABASE_URL, SUPABASE_PUBLISHABLE_KEY, and the same three again with the VITE_ prefix. Commit.
    (These three are public-safe values. Never put the secret key in this file.)
@@ -74,3 +77,17 @@ From now on, every change you commit to GitHub is published automatically in abo
 5. Sell some at the counter ("Sold offline"): stock drops. At zero, customers see "Out of stock".
 
 NOTE: new products start with 0 stock, so the shop looks empty until you enter real stock quantities.
+
+---------------------------------------------------------------------
+
+## PART E. Customer accounts and the customer database
+
+- Customers can create an account (name, phone, password, address, map pin) or order as a guest.
+- All customers, with or without accounts, are stored in ONE table: Supabase -> Table Editor -> `customers`.
+  The `maps_link` column is a clickable Google Maps link. You can export the table as CSV from the Table Editor.
+- In the admin panel: Customers tab -> search, open map links, WhatsApp, "Reset password" for account holders,
+  and CSV downloads (all customers, or only those who agreed to offers).
+- Only message customers who ticked the offers box (the "Agreed to offers" column).
+- Forgot-password: the customer contacts the shop, you set a temporary password in the Customers tab.
+  To show a WhatsApp button on the login page, put the shop number in `src/lib/shop-config.ts`.
+- Back up regularly: download the customers CSV every week or two.
