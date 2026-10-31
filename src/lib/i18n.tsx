@@ -18,6 +18,13 @@ const hi: Record<string, string> = {
   'Try again': 'फिर कोशिश करें', 'Access denied': 'प्रवेश नहीं मिला',
   'This account does not have admin access.': 'इस अकाउंट के पास एडमिन अधिकार नहीं है।', 'Return to shop': 'दुकान पर वापस जाएं',
   'Alternate phone': 'दूसरा फोन नंबर', 'Call alternate number': 'दूसरे नंबर पर कॉल करें', 'Open location in Maps': 'मैप में लोकेशन खोलें',
+  'Download all customers': 'सभी ग्राहक डाउनलोड करें', 'Download customers who agreed to offers': 'ऑफ़र के लिए सहमत ग्राहक डाउनलोड करें',
+  'No customers to download yet.': 'अभी डाउनलोड के लिए कोई ग्राहक नहीं है।', Location: 'लोकेशन', Account: 'अकाउंट', Offers: 'ऑफ़र',
+  'Open map': 'मैप खोलें', Yes: 'हाँ', No: 'नहीं', 'Reset password': 'पासवर्ड बदलें', 'New temporary password': 'नया अस्थायी पासवर्ड',
+  'Save new password': 'नया पासवर्ड सेव करें', 'Password reset. Tell the customer the new password.': 'पासवर्ड बदल दिया गया। ग्राहक को नया पासवर्ड बताएं।',
+  'Password must be at least 6 characters': 'पासवर्ड कम से कम 6 अक्षर का होना चाहिए',
+  'Only reset a password after confirming it is really the customer, for example by calling back on their registered number.': 'पासवर्ड तभी बदलें जब पक्का हो कि वह असली ग्राहक है, जैसे उनके दर्ज नंबर पर वापस कॉल करके।',
+  'This customer does not have an account': 'इस ग्राहक का अकाउंट नहीं है', 'Admin access required': 'एडमिन अधिकार चाहिए', 'Could not reset the password': 'पासवर्ड नहीं बदल पाया',
   // Dashboard
   "Today's new orders": 'आज के नए ऑर्डर', 'Pending orders': 'बाकी ऑर्डर', 'Total orders': 'कुल ऑर्डर', 'Sales this week': 'इस हफ्ते की बिक्री',
   'Latest orders': 'नए ऑर्डर', 'View all': 'सब देखें',

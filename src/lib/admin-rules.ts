@@ -33,3 +33,18 @@ export function dashboardStats(orders: SummaryOrder[], now = new Date()) {
     sales: orders.filter(o => o.status !== 'Cancelled' && indiaDate(new Date(o.created_at)) >= start && new Date(o.created_at) <= now).reduce((s, o) => s + Number(o.total), 0),
   };
 }
+// Spreadsheet programs run cells that start with = + - @ as formulas, so such text is defused with a leading apostrophe.
+const csvCell = (value: string | number | boolean | null | undefined) => {
+  const text = value === null || value === undefined ? '' : String(value);
+  const safe = /^[=+\-@\t\r]/.test(text) ? `'${text}` : text;
+  return /[",\n\r]/.test(safe) ? `"${safe.replace(/"/g, '""')}"` : safe;
+};
+export type CustomerCsvRow = {
+  name: string; phone: string; alt_phone: string | null; email: string | null; address: string; maps_link: string | null;
+  marketing_consent: boolean; auth_user_id: string | null; created_at: string; orders: number;
+};
+export function customersCsv(rows: CustomerCsvRow[]) {
+  const header = ['Name', 'Phone', 'Alternate phone', 'Email', 'Address', 'Google Maps link', 'Agreed to offers', 'Has account', 'Joined', 'Orders'];
+  const lines = rows.map(r => [r.name, r.phone, r.alt_phone, r.email, r.address, r.maps_link, r.marketing_consent ? 'Yes' : 'No', r.auth_user_id ? 'Yes' : 'No', r.created_at.slice(0, 10), r.orders].map(csvCell).join(','));
+  return [header.join(','), ...lines].join('\r\n');
+}
