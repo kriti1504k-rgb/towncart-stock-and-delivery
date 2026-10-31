@@ -49,6 +49,14 @@ export type Database = {
       }
       customers: {
         Row: {
+          alt_phone: string | null
+          auth_user_id: string | null
+          lat: number | null
+          lng: number | null
+          maps_link: string | null
+          marketing_consent: boolean
+          marketing_consent_at: string | null
+          updated_at: string
           address: string
           created_at: string
           email: string | null
@@ -57,6 +65,13 @@ export type Database = {
           phone: string
         }
         Insert: {
+          alt_phone?: string | null
+          auth_user_id?: string | null
+          lat?: number | null
+          lng?: number | null
+          marketing_consent?: boolean
+          marketing_consent_at?: string | null
+          updated_at?: string
           address: string
           created_at?: string
           email?: string | null
@@ -65,6 +80,13 @@ export type Database = {
           phone: string
         }
         Update: {
+          alt_phone?: string | null
+          auth_user_id?: string | null
+          lat?: number | null
+          lng?: number | null
+          marketing_consent?: boolean
+          marketing_consent_at?: string | null
+          updated_at?: string
           address?: string
           created_at?: string
           email?: string | null
@@ -144,6 +166,8 @@ export type Database = {
       }
       orders: {
         Row: {
+          account_id: string | null
+          delivery_maps_link: string | null
           created_at: string
           customer_id: string
           delivery_address: string
@@ -161,6 +185,7 @@ export type Database = {
           total: number
         }
         Insert: {
+          account_id?: string | null
           created_at?: string
           customer_id: string
           delivery_address: string
@@ -178,6 +203,7 @@ export type Database = {
           total?: number
         }
         Update: {
+          account_id?: string | null
           created_at?: string
           customer_id?: string
           delivery_address?: string
@@ -344,12 +370,16 @@ export type Database = {
         }
         Returns: boolean
       }
-      set_order_extras: {
-        Args: { _alt_phone: string | null; _lat: number | null; _lng: number | null; _order: string }
+      update_my_profile: {
+        Args: { _address: string; _alt_phone: string; _email: string; _lat: number | null; _lng: number | null; _marketing_consent: boolean; _name: string }
         Returns: undefined
       }
       place_guest_order: {
         Args: {
+          _account?: string | null
+          _alt_phone?: string | null
+          _lat?: number | null
+          _lng?: number | null
           _address: string
           _email: string
           _items: Json
