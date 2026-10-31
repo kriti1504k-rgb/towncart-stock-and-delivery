@@ -1,6 +1,7 @@
 import { createFileRoute, Link, useNavigate } from '@tanstack/react-router';
 import { useServerFn } from '@tanstack/react-start';
-import { useEffect, useState } from 'react';
+import { useEffect, useRef, useState } from 'react';
+import { useQuery } from '@tanstack/react-query';
 import { toast } from 'sonner';
 import { AppShell } from '@/components/AppShell';
 import { Button } from '@/components/ui/button';
@@ -8,12 +9,14 @@ import { useCart, formatINR } from '@/lib/cart';
 import { detailsKey, emptyDetails, guestDetailsSchema, readSavedOrders, savedOrdersKey, type GuestDetails } from '@/lib/guest-checkout';
 import { LocationPicker } from '@/components/LocationPicker';
 import { placeGuestOrder } from '@/lib/guest-order.functions';
+import { supabase } from '@/integrations/supabase/client';
+import { useCustomerSession } from '@/lib/customer-auth';
 
 export const Route = createFileRoute('/checkout')({
   head: () => ({ meta: [
-    { title: 'Guest Checkout — Wholesale Mart' },
-    { name: 'description', content: 'Place your wholesale order without an account. Pay cash or UPI on delivery.' },
-    { property: 'og:title', content: 'Guest Checkout — Wholesale Mart' },
+    { title: 'Checkout — Wholesale Mart' },
+    { name: 'description', content: 'Place your wholesale order with or without an account. Pay cash or UPI on delivery.' },
+    { property: 'og:title', content: 'Checkout — Wholesale Mart' },
     { property: 'og:description', content: 'Confirm your details and order with payment on delivery.' },
     { property: 'og:type', content: 'website' }, { name: 'twitter:card', content: 'summary' },
   ] }),
@@ -28,6 +31,19 @@ function Checkout() {
   const [loaded, setLoaded] = useState(false);
   const [note, setNote] = useState('');
   const [busy, setBusy] = useState(false);
+  const { session } = useCustomerSession();
+  const prefilled = useRef(false);
+  const profile = useQuery({
+    queryKey: ['my-profile', session?.user.id], enabled: !!session,
+    queryFn: async () => { const { data, error } = await supabase.from('customers').select('*').eq('auth_user_id', session!.user.id).maybeSingle(); if (error) throw error; return data; },
+  });
+  // Logged-in customers get their saved account details filled in (still editable for this order).
+  useEffect(() => {
+    const p = profile.data;
+    if (!loaded || !p || prefilled.current) return;
+    prefilled.current = true;
+    setDetails({ name: p.name, phone: p.phone, alt_phone: p.alt_phone ?? '', email: p.email ?? '', address: p.address, lat: p.lat, lng: p.lng });
+  }, [profile.data, loaded]);
   useEffect(() => {
     try {
       const stored = guestDetailsSchema.safeParse(JSON.parse(localStorage.getItem(detailsKey) ?? 'null'));
@@ -62,6 +78,8 @@ function Checkout() {
   const input = 'w-full rounded-lg border bg-surface px-3 py-3 text-base outline-none focus:border-primary';
   return <AppShell title="Checkout" hideCartBar>
     <form onSubmit={submit} className="space-y-5 px-4 py-5">
+      {profile.data ? <p className="rounded-lg bg-secondary p-3 text-sm">Ordering as <b>{profile.data.name}</b>. This order will appear in your account on any phone.</p>
+        : !session && <p className="rounded-lg bg-secondary p-3 text-sm">Have an account? <Link to="/orders" className="font-semibold text-primary underline">Log in</Link> to fill these details in and see your orders on any phone. Or just continue as a guest.</p>}
       <h1 className="text-xl font-extrabold">Delivery details</h1>
       {stockReady && stockProblems.length > 0 && <p role="alert" className="text-sm text-destructive">Stock has changed. <Link to="/cart" className="underline">Update your cart</Link> before placing this order.</p>}
       <label className="block space-y-1 text-sm font-semibold"><span>Name *</span><input required maxLength={100} autoComplete="name" className={input} value={details.name} onChange={e => setDetails({ ...details, name: e.target.value })} /></label>
