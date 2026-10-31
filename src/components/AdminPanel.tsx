@@ -2,7 +2,7 @@ import { useState, type ReactNode } from 'react';
 import { Link } from '@tanstack/react-router';
 import { useQuery, useQueryClient } from '@tanstack/react-query';
 import { useServerFn } from '@tanstack/react-start';
-import { LayoutDashboard, Package, Tags, ShoppingBag, Users, Plus, Pencil, Trash2, ArrowLeft, Phone, MessageCircle, RefreshCw, Save, Upload, LogOut, Search, MapPin } from 'lucide-react';
+import { LayoutDashboard, Package, Tags, ShoppingBag, Users, Plus, Pencil, Trash2, ArrowLeft, Phone, MessageCircle, RefreshCw, Save, Upload, LogOut, Search, MapPin, Download, KeyRound } from 'lucide-react';
 import { toast } from 'sonner';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
@@ -10,10 +10,10 @@ import { InventoryTable } from '@/components/InventoryTable';
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogDescription } from '@/components/ui/dialog';
 import { supabase } from '@/integrations/supabase/client';
 import type { Tables } from '@/integrations/supabase/types';
-import { getAdminData } from '@/lib/admin.functions';
+import { getAdminData, resetCustomerPassword } from '@/lib/admin.functions';
 import { useAuth } from '@/lib/auth';
 import { formatINR } from '@/lib/cart';
-import { customerContact, dashboardStats, orderStatuses, productSchema } from '@/lib/admin-rules';
+import { customerContact, customersCsv, dashboardStats, orderStatuses, productSchema } from '@/lib/admin-rules';
 import { imagePrefix, resolveProductImage } from '@/lib/product-images';
 import { LanguageProvider, LanguageToggle, useT } from '@/lib/i18n';
 
@@ -41,6 +41,9 @@ function AdminPanelInner() {
   const [orderId, setOrderId] = useState<string | null>(null);
   const [deleting, setDeleting] = useState<{ table: 'products' | 'categories'; id: string; name: string } | null>(null);
   const [busy, setBusy] = useState(false);
+  const [resetFor, setResetFor] = useState<Tables<'customers'> | null>(null);
+  const [tempPassword, setTempPassword] = useState('');
+  const resetPassword = useServerFn(resetCustomerPassword);
   const { session } = useAuth();
   const queryClient = useQueryClient();
   const read = useServerFn(getAdminData);
@@ -89,6 +92,22 @@ function AdminPanelInner() {
       }
       setEditing(null); toast.success(t('Product saved'));
     });
+  }
+  async function submitReset() {
+    if (!resetFor) return;
+    if (tempPassword.length < 6) return void toast.error(t('Password must be at least 6 characters'));
+    await perform(async () => {
+      await resetPassword({ data: { customerId: resetFor.id, password: tempPassword } });
+      toast.success(t('Password reset. Tell the customer the new password.'));
+      setResetFor(null); setTempPassword('');
+    });
+  }
+  function downloadCustomers(onlyOffers: boolean) {
+    if (!data) return;
+    const rows = data.customers.filter(c => !onlyOffers || c.marketing_consent).map(c => ({ ...c, orders: data.orders.filter(o => o.customer_id === c.id).length }));
+    if (!rows.length) return void toast.error(t('No customers to download yet.'));
+    const url = URL.createObjectURL(new Blob(['\uFEFF' + customersCsv(rows)], { type: 'text/csv;charset=utf-8' }));
+    const a = document.createElement('a'); a.href = url; a.download = onlyOffers ? 'customers-agreed-to-offers.csv' : 'customers.csv'; a.click(); URL.revokeObjectURL(url);
   }
   async function updateStatus(order: Order, next: Order['status']) {
     await perform(async () => {
@@ -139,7 +158,9 @@ function AdminPanelInner() {
         {section === 'Products' && <InventoryTable products={data.products} categories={data.categories} images={images.data} refresh={refresh} addProduct={() => openProduct('new')} deleteProduct={p => setDeleting({ table: 'products', id: p.id, name: p.name })} />}
         {section === 'Categories' && <div className="border-y bg-surface">{data.categories.map(c => <div key={c.id} className="flex items-center gap-3 border-b p-4 last:border-0"><Tags className="size-5 text-primary" /><div className="min-w-0 flex-1"><p className="break-words font-bold">{c.name}</p><p className="text-xs text-muted-foreground">{data.products.filter(p => p.category_id === c.id).length} {t('products')}</p></div><Button size="icon" variant="ghost" aria-label={`Rename ${c.name}`} title={t('Rename category')} onClick={() => { setCategory(c); setCategoryName(c.name); }}><Pencil /></Button><Button size="icon" variant="ghost" className="text-destructive" aria-label={`Delete ${c.name}`} title={t('Delete category')} onClick={() => setDeleting({ table: 'categories', id: c.id, name: c.name })}><Trash2 /></Button></div>)}{!data.categories.length && <Empty>{t('No categories yet.')}</Empty>}</div>}
         {section === 'Orders' && <><label className="mb-4 flex items-center gap-2 text-sm">{t('Status')}<select className="h-10 rounded-md border bg-surface px-3" value={status} onChange={e => setStatus(e.target.value)}><option value="All">{t('All')}</option>{orderStatuses.map(s => <option key={s} value={s}>{t(s)}</option>)}</select></label><div className="border-y bg-surface">{showOrders(visibleOrders)}</div></>}
-        {section === 'Customers' && <div className="overflow-x-auto border-y bg-surface"><table className="w-full min-w-[600px] text-left text-sm"><thead className="border-b bg-muted/50 text-xs text-muted-foreground"><tr>{['Name', 'Phone', 'Address', 'Orders'].map(h => <th className="p-4" key={h}>{t(h)}</th>)}</tr></thead><tbody>{data.customers.filter(c => `${c.name} ${c.phone} ${c.address}`.toLowerCase().includes(q)).map(c => <tr key={c.id} className="border-b last:border-0"><td className="p-4 font-bold">{c.name}</td><td className="p-4">{c.phone}</td><td className="max-w-xs break-words p-4 text-muted-foreground">{c.address}</td><td className="p-4 font-bold">{data.orders.filter(o => o.customer_id === c.id).length}</td></tr>)}</tbody></table>{!data.customers.length && <Empty>{t('No customers yet.')}</Empty>}</div>}
+        {section === 'Customers' && <div className="space-y-3">
+          <div className="flex flex-wrap gap-2"><Button variant="outline" onClick={() => downloadCustomers(false)}><Download />{t('Download all customers')}</Button><Button variant="outline" onClick={() => downloadCustomers(true)}><Download />{t('Download customers who agreed to offers')}</Button></div>
+          <div className="overflow-x-auto border-y bg-surface"><table className="w-full min-w-[940px] text-left text-sm"><thead className="border-b bg-muted/50 text-xs text-muted-foreground"><tr>{['Name', 'Phone', 'Address', 'Location', 'Account', 'Offers', 'Orders', 'Actions'].map(h => <th className="p-4" key={h}>{t(h)}</th>)}</tr></thead><tbody>{data.customers.filter(c => `${c.name} ${c.phone} ${c.alt_phone ?? ''} ${c.address}`.toLowerCase().includes(q)).map(c => { const wa = customerContact(c.phone); return <tr key={c.id} className="border-b last:border-0"><td className="p-4 font-bold">{c.name}</td><td className="p-4"><p>{c.phone}</p>{c.alt_phone && <p className="text-xs text-muted-foreground">{c.alt_phone}</p>}{wa && <a href={wa.whatsapp} target="_blank" rel="noopener noreferrer" className="text-xs font-semibold text-primary">WhatsApp</a>}</td><td className="max-w-xs break-words p-4 text-muted-foreground">{c.address}</td><td className="p-4">{c.maps_link ? <a href={c.maps_link} target="_blank" rel="noopener noreferrer" className="inline-flex items-center gap-1 font-semibold text-primary"><MapPin className="size-4" />{t('Open map')}</a> : <span className="text-muted-foreground">—</span>}</td><td className="p-4">{c.auth_user_id ? t('Yes') : t('No')}</td><td className="p-4">{c.marketing_consent ? t('Yes') : t('No')}</td><td className="p-4 font-bold">{data.orders.filter(o => o.customer_id === c.id).length}</td><td className="p-4">{c.auth_user_id && <Button variant="outline" size="sm" onClick={() => { setTempPassword(''); setResetFor(c); }}><KeyRound />{t('Reset password')}</Button>}</td></tr>; })}</tbody></table>{!data.customers.length && <Empty>{t('No customers yet.')}</Empty>}</div></div>}
       </main>
     </div>
     <nav className="fixed inset-x-0 bottom-0 z-20 grid grid-cols-5 border-t bg-surface pb-[env(safe-area-inset-bottom)] md:hidden">{sections.map(s => <Button key={s.name} variant="ghost" className={`h-16 min-w-0 flex-col gap-1 rounded-none px-0 text-[10px] ${section === s.name ? 'bg-secondary text-primary' : 'text-muted-foreground'}`} onClick={() => { setSection(s.name); setSearch(''); }}><s.icon />{t(s.name)}</Button>)}</nav>
@@ -148,6 +169,7 @@ function AdminPanelInner() {
 
     <Dialog open={category !== null} onOpenChange={open => { if (!open && !busy) setCategory(null); }}><DialogContent><DialogHeader><DialogTitle>{category === 'new' ? t('Add category') : t('Rename category')}</DialogTitle><DialogDescription>{t('Category name')}</DialogDescription></DialogHeader><form className="space-y-4" onSubmit={e => { e.preventDefault(); const name = categoryName.trim(); if (!name || name.length > 100) return void toast.error(t('Enter a category name, up to 100 characters')); void perform(async () => { const result = category === 'new' ? await supabase.from('categories').insert({ name, sort_order: data.categories.length }) : await supabase.from('categories').update({ name }).eq('id', typeof category === 'object' && category ? category.id : '').select('id'); if (result.error) throw new Error('Category could not be saved'); setCategory(null); toast.success(t('Category saved')); }); }}><Input aria-label={t('Category name')} autoFocus required maxLength={100} value={categoryName} onChange={e => setCategoryName(e.target.value)} /><Button disabled={busy} className="w-full"><Save />{busy ? t('Saving…') : t('Save category')}</Button></form></DialogContent></Dialog>
 
+    <Dialog open={!!resetFor} onOpenChange={open => { if (!open && !busy) { setResetFor(null); setTempPassword(''); } }}><DialogContent><DialogHeader><DialogTitle>{t('Reset password')}</DialogTitle><DialogDescription>{resetFor?.name} · {resetFor?.phone}</DialogDescription></DialogHeader><label className="block space-y-1 text-sm font-semibold"><span>{t('New temporary password')}</span><Input type="text" autoComplete="off" value={tempPassword} onChange={e => setTempPassword(e.target.value)} /></label><p className="text-xs text-muted-foreground">{t('Only reset a password after confirming it is really the customer, for example by calling back on their registered number.')}</p><div className="flex justify-end gap-2"><Button variant="outline" disabled={busy} onClick={() => { setResetFor(null); setTempPassword(''); }}>{t('Cancel')}</Button><Button disabled={busy || tempPassword.length < 6} onClick={submitReset}>{busy ? t('Saving…') : t('Save new password')}</Button></div></DialogContent></Dialog>
     <Dialog open={!!deleting} onOpenChange={open => { if (!open && !busy) setDeleting(null); }}><DialogContent><DialogHeader><DialogTitle>{t('Delete')} {deleting?.name}?</DialogTitle><DialogDescription>{deleting?.table === 'categories' ? t('Products in this category will become uncategorized.') : t('This product will be removed from the shop. Past orders will keep their item details.')}</DialogDescription></DialogHeader><div className="flex justify-end gap-2"><Button variant="outline" disabled={busy} onClick={() => setDeleting(null)}>{t('Cancel')}</Button><Button variant="destructive" disabled={busy} onClick={() => perform(async () => { if (!deleting) return; const { data: removed, error } = await supabase.from(deleting.table).delete().eq('id', deleting.id).select('id'); if (error || !removed?.length) throw new Error('Could not delete this item'); setDeleting(null); toast.success(t('Deleted')); })}><Trash2 />{busy ? t('Deleting…') : t('Delete')}</Button></div></DialogContent></Dialog>
 
     <Dialog open={!!selectedOrder} onOpenChange={open => { if (!open) setOrderId(null); }}><DialogContent className="max-h-[90dvh] max-w-xl overflow-y-auto"><DialogHeader><DialogTitle>{t('Order')} #{selectedOrder?.id.slice(0, 8).toUpperCase()}</DialogTitle><DialogDescription>{selectedOrder && formatDate(selectedOrder.created_at)}</DialogDescription></DialogHeader>{selectedOrder && <><div className="flex items-center justify-between"><h3 className="font-bold">{selectedCustomer?.name ?? t('Customer')}</h3><StatusBadge status={selectedOrder.status} /></div><div className="space-y-1 text-sm"><p>{selectedCustomer?.phone}</p><p className="whitespace-pre-wrap break-words text-muted-foreground">{selectedOrder.delivery_address}</p></div>{contact && <div className="flex flex-wrap gap-2"><Button asChild variant="outline"><a href={contact.call}><Phone />{t('Call customer')}</a></Button><Button asChild variant="outline"><a href={contact.whatsapp} target="_blank" rel="noopener noreferrer"><MessageCircle />{t('WhatsApp customer')}</a></Button></div>}{(altContact || hasPin) && <div className="space-y-2 text-sm">{altContact && <p className="flex flex-wrap items-center gap-2"><span className="text-muted-foreground">{t('Alternate phone')}: {selectedOrder.guest_alt_phone}</span><Button asChild variant="outline" size="sm"><a href={altContact.call}><Phone />{t('Call alternate number')}</a></Button></p>}{hasPin && <Button asChild variant="outline"><a href={`https://www.google.com/maps?q=${selectedOrder.delivery_lat},${selectedOrder.delivery_lng}`} target="_blank" rel="noopener noreferrer"><MapPin />{t('Open location in Maps')}</a></Button>}</div>}{selectedOrder.note && <div className="border-l-2 border-primary pl-3 text-sm"><span className="font-bold">{t('Order note')}</span><p className="break-words text-muted-foreground">{selectedOrder.note}</p></div>}<div className="border-y">{data.items.filter(i => i.order_id === selectedOrder.id).map(i => <div key={i.id} className="flex items-start justify-between gap-3 border-b py-3 last:border-0"><div className="min-w-0"><p className="break-words text-sm font-bold">{i.product_name}</p><p className="text-xs text-muted-foreground">{i.quantity} × {formatINR(Number(i.price))} · {i.unit}</p></div><span className="shrink-0 text-sm font-semibold">{formatINR(Number(i.price) * i.quantity)}</span></div>)}</div><div className="flex justify-between text-lg font-extrabold"><span>{t('Total')}</span><span>{formatINR(Number(selectedOrder.total))}</span></div><p className="text-xs text-muted-foreground">{t('Cash or UPI on delivery')}</p><h3 className="text-sm font-bold">{t('Change status')}</h3><div className="grid grid-cols-2 gap-2 sm:grid-cols-3">{orderStatuses.map(s => <Button key={s} variant={selectedOrder.status === s ? 'secondary' : 'outline'} disabled={busy || selectedOrder.status === s} onClick={() => updateStatus(selectedOrder, s)}>{t(s)}</Button>)}</div></>}</DialogContent></Dialog>
