@@ -91,3 +91,33 @@ NOTE: new products start with 0 stock, so the shop looks empty until you enter r
 - Forgot-password: the customer contacts the shop, you set a temporary password in the Customers tab.
   To show a WhatsApp button on the login page, put the shop number in `src/lib/shop-config.ts`.
 - Back up regularly: download the customers CSV every week or two.
+
+---------------------------------------------------------------------
+
+## PART F. Sign in with Google (optional)
+
+1. Run `supabase-update-0009.sql` once in Supabase -> SQL Editor.
+2. Google Cloud (console.cloud.google.com, use a personal Google account):
+   - New project, e.g. "Wholesale Mart".
+   - APIs & Services -> OAuth consent screen: app name "Wholesale Mart", your email for support and contact, External. Publish the app ("In production") so every customer can use it. Only the basic email/profile permissions are needed.
+   - Credentials -> Create credentials -> OAuth client ID -> Web application.
+     Authorized redirect URI: https://YOUR-PROJECT-ID.supabase.co/auth/v1/callback
+   - Copy the Client ID and Client secret.
+3. Supabase -> Authentication -> Sign In / Providers -> Google: switch ON, paste the Client ID and Client secret, Save.
+4. Supabase -> Authentication -> URL Configuration:
+   - Site URL: your website address.
+   - Redirect URLs: add your website address with /orders, e.g. https://your-site.workers.dev/orders (and the custom domain later).
+5. In `src/lib/features.ts` change `GOOGLE_LOGIN_ENABLED = false` to `true` and commit.
+6. Test: Orders tab -> Continue with Google.
+
+---------------------------------------------------------------------
+
+## PART G. Sign up with an email address
+
+- On the Orders tab, customers choose "Phone number" or "Email" when they log in or create an account.
+  The phone number is still asked for at sign-up either way (delivery and the shop's confirmation call).
+- Switch the email option off with `EMAIL_LOGIN_ENABLED = false` in `src/lib/features.ts`.
+- Emails are NOT verified yet, and Supabase's built-in email sending is very limited, so "forgot password"
+  works through the shop: use "Reset password" in the admin Customers tab.
+- Later, when you add verification (SMS or email codes), turn on email confirmation then.
+- Apple sign-in is not included. It needs a paid Apple Developer account; add it only if customers ask.
