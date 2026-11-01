@@ -10,6 +10,7 @@ import { Button } from '@/components/ui/button';
 import { supabase } from '@/integrations/supabase/client';
 import { formatINR } from '@/lib/cart';
 import { mapLink } from '@/lib/guest-checkout';
+import { completeProfileSchema, isStaffEmail } from '@/lib/customer-auth';
 
 const input = 'w-full rounded-lg border bg-surface px-3 py-3 text-base outline-none focus:border-primary';
 const finished = (status: string) => status === 'Delivered' || status === 'Cancelled';
@@ -60,6 +61,7 @@ export function AccountView({ session }: { session: Session }) {
 
   const p = profile.data;
   if (profile.isPending) return <p className="p-6 text-center text-sm text-muted-foreground">Loading your account…</p>;
+  if (!p && !isStaffEmail(session.user.email)) return <CompleteProfile session={session} onDone={() => queryClient.invalidateQueries({ queryKey: ['my-profile', uid] })} onSignOut={signOut} />;
   if (!p) return <div className="space-y-3 rounded-lg border bg-surface p-4"><p className="text-sm">This login has no customer profile. It may be a shop admin account.</p><div className="flex gap-2"><Button asChild variant="outline"><Link to="/admin">Open admin</Link></Button><Button variant="outline" onClick={signOut}>Log out</Button></div></div>;
 
   const list = orders.data ?? [];
@@ -112,4 +114,37 @@ export function AccountView({ session }: { session: Session }) {
     </section>
     <Button variant="outline" className="w-full" onClick={signOut}>Log out</Button>
   </div>;
+}
+
+// Shown after the first Google sign-in: we only get a name and email from Google, so ask for phone and address once.
+function CompleteProfile({ session, onDone, onSignOut }: { session: Session; onDone: () => void; onSignOut: () => void }) {
+  const meta = session.user.user_metadata as { full_name?: string; name?: string };
+  const [form, setForm] = useState({ name: meta.full_name ?? meta.name ?? '', phone: '', alt_phone: '', email: '', address: '', lat: null as number | null, lng: null as number | null, marketing_consent: false });
+  const [saving, setSaving] = useState(false);
+
+  async function submit(event: React.FormEvent) {
+    event.preventDefault();
+    if (saving) return;
+    const parsed = completeProfileSchema.safeParse(form);
+    if (!parsed.success) return void toast.error(parsed.error.issues[0]?.message ?? 'Check your details');
+    setSaving(true);
+    try {
+      const v = parsed.data;
+      const { error } = await supabase.rpc('complete_my_profile', { _name: v.name, _phone: v.phone, _alt_phone: v.alt_phone, _address: v.address, _lat: v.lat, _lng: v.lng, _marketing_consent: v.marketing_consent });
+      if (error) return void toast.error(error.message.includes('already has an account') ? 'This phone number already has an account. Log in with your phone number and password, or contact the shop.' : 'Could not save your details. Please try again.');
+      toast.success('Welcome! Your account is ready.');
+      onDone();
+    } finally { setSaving(false); }
+  }
+
+  return <form onSubmit={submit} className="space-y-4 rounded-lg border bg-surface p-4">
+    <div><h1 className="text-xl font-extrabold">Almost done</h1><p className="text-sm text-muted-foreground">Signed in with Google as {session.user.email}. Add your phone number and delivery address so the shop can deliver and call you.</p></div>
+    <label className="block space-y-1 text-sm font-semibold"><span>Name *</span><input required maxLength={100} autoComplete="name" className={input} value={form.name} onChange={e => setForm({ ...form, name: e.target.value })} /></label>
+    <PhoneField label="Phone number *" required value={form.phone} onChange={phone => setForm({ ...form, phone })} />
+    <PhoneField label="Alternate phone number (optional)" value={form.alt_phone} onChange={alt_phone => setForm({ ...form, alt_phone })} />
+    <label className="block space-y-1 text-sm font-semibold"><span>Delivery address *</span><textarea required minLength={5} maxLength={500} rows={3} autoComplete="street-address" className={input} value={form.address} onChange={e => setForm({ ...form, address: e.target.value })} placeholder="Shop name, street, landmark, town" /></label>
+    <div className="space-y-2"><h2 className="text-sm font-semibold">Pin your location on the map <span className="font-normal text-muted-foreground">(recommended)</span></h2><LocationPicker lat={form.lat} lng={form.lng} onChange={(lat, lng) => setForm(f => ({ ...f, lat, lng }))} /></div>
+    <ConsentField checked={form.marketing_consent} onChange={marketing_consent => setForm({ ...form, marketing_consent })} />
+    <div className="flex gap-2"><Button type="submit" disabled={saving} className="flex-1">{saving ? 'Saving…' : 'Finish'}</Button><Button type="button" variant="outline" onClick={onSignOut}>Log out</Button></div>
+  </form>;
 }
