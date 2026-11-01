@@ -1,6 +1,6 @@
 import { describe, expect, it } from 'vitest';
 import { customersCsv } from '@/lib/admin-rules';
-import { customerEmail, friendlyAuthError, loginSchema, signupMetadata, signupSchema } from '@/lib/customer-auth';
+import { completeProfileSchema, customerEmail, emailLoginSchema, emailSignupSchema, friendlyAuthError, isStaffEmail, loginSchema, signupMetadata, signupSchema } from '@/lib/customer-auth';
 
 const base = { name: 'Ravi Traders', phone: '9111111111', password: 'secret1', alt_phone: '', email: '', address: 'Shop 4, Main Bazaar', lat: null, lng: null, marketing_consent: false };
 
@@ -37,6 +37,23 @@ describe('customer sign-up and login rules', () => {
   });
 });
 
+describe('Google sign-in profile step', () => {
+  const { password: _unused, ...details } = base;
+  it('needs the same details as sign-up, but no password', () => {
+    expect(completeProfileSchema.safeParse(details).success).toBe(true);
+    expect(completeProfileSchema.safeParse({ ...details, phone: '123' }).success).toBe(false);
+    expect(completeProfileSchema.safeParse({ ...details, address: 'ab' }).success).toBe(false);
+  });
+  it('recognises shop staff logins, so they are not asked for a customer profile', () => {
+    expect(isStaffEmail('p8194096344@phone.local')).toBe(true);
+    expect(isStaffEmail('sita@gmail.com')).toBe(false);
+    expect(isStaffEmail(undefined)).toBe(false);
+  });
+  it('explains when Google sign-in is not switched on', () => {
+    expect(friendlyAuthError('Unsupported provider: provider is not enabled', 'login')).toMatch(/Google sign-in is not available/);
+  });
+});
+
 describe('customer list download (CSV)', () => {
   const row = { name: 'Ravi', phone: '9111111111', alt_phone: null, email: null, address: 'Shop 4, "Main" Bazaar', maps_link: 'https://www.google.com/maps?q=28.6,77.2', marketing_consent: true, auth_user_id: 'u1', created_at: '2026-10-29T10:00:00Z', orders: 3 };
   it('has a header, quotes awkward text, and shows yes/no columns', () => {
@@ -48,5 +65,26 @@ describe('customer list download (CSV)', () => {
     const out = customersCsv([{ ...row, name: '=HYPERLINK("http://x")', address: '+cmd|calc' }]);
     expect(out).toContain(`"'=HYPERLINK(""http://x"")"`);
     expect(out).toContain("'+cmd|calc");
+  });
+});
+
+describe('email sign-up and login', () => {
+  const withEmail = { name: 'Ravi Traders', phone: '9111111111', password: 'secret1', alt_phone: '', email: 'ravi@example.com', address: 'Shop 4, Main Bazaar', lat: null, lng: null, marketing_consent: false };
+  it('needs a valid email, and still needs the phone number', () => {
+    expect(emailSignupSchema.safeParse(withEmail).success).toBe(true);
+    expect(emailSignupSchema.safeParse({ ...withEmail, email: '' }).success).toBe(false);
+    expect(emailSignupSchema.safeParse({ ...withEmail, email: 'ravi@' }).success).toBe(false);
+    expect(emailSignupSchema.safeParse({ ...withEmail, phone: '' }).success).toBe(false);
+  });
+  it('passes the real email on so the shop can see it', () => {
+    expect(signupMetadata(emailSignupSchema.parse(withEmail))).toMatchObject({ account_type: 'customer', contact_email: 'ravi@example.com', phone: '9111111111' });
+  });
+  it('email login needs an email and a password', () => {
+    expect(emailLoginSchema.safeParse({ email: 'ravi@example.com', password: 'x' }).success).toBe(true);
+    expect(emailLoginSchema.safeParse({ email: 'nope', password: 'x' }).success).toBe(false);
+    expect(emailLoginSchema.safeParse({ email: 'ravi@example.com', password: '' }).success).toBe(false);
+  });
+  it('says "email or phone" when an email sign-up is a duplicate', () => {
+    expect(friendlyAuthError('User already registered', 'signup', 'email')).toMatch(/email or phone/);
   });
 });
