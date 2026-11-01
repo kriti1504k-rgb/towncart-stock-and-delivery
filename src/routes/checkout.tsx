@@ -79,6 +79,7 @@ function Checkout() {
   return <AppShell title="Checkout" hideCartBar>
     <form onSubmit={submit} className="space-y-5 px-4 py-5">
       {profile.data ? <p className="rounded-lg bg-secondary p-3 text-sm">Ordering as <b>{profile.data.name}</b>. This order will appear in your account on any phone.</p>
+        : session && profile.isSuccess ? <p className="rounded-lg bg-secondary p-3 text-sm">Your account is almost ready. <Link to="/orders" className="font-semibold text-primary underline">Add your phone number and address</Link> to save them for next time.</p>
         : !session && <p className="rounded-lg bg-secondary p-3 text-sm">Have an account? <Link to="/orders" className="font-semibold text-primary underline">Log in</Link> to fill these details in and see your orders on any phone. Or just continue as a guest.</p>}
       <h1 className="text-xl font-extrabold">Delivery details</h1>
       {stockReady && stockProblems.length > 0 && <p role="alert" className="text-sm text-destructive">Stock has changed. <Link to="/cart" className="underline">Update your cart</Link> before placing this order.</p>}
