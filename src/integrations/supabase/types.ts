@@ -370,6 +370,10 @@ export type Database = {
         }
         Returns: boolean
       }
+      complete_my_profile: {
+        Args: { _address: string; _alt_phone: string; _lat: number | null; _lng: number | null; _marketing_consent: boolean; _name: string; _phone: string }
+        Returns: undefined
+      }
       update_my_profile: {
         Args: { _address: string; _alt_phone: string; _email: string; _lat: number | null; _lng: number | null; _marketing_consent: boolean; _name: string }
         Returns: undefined
