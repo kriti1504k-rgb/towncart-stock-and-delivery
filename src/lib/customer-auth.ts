@@ -21,6 +21,13 @@ export const signupSchema = z.object({
   marketing_consent: z.boolean(),
 });
 export type SignupInput = z.infer<typeof signupSchema>;
+// Signing up with an email address: same details, but the email is required and becomes the login.
+export const emailSignupSchema = signupSchema.extend({ email: z.string().trim().min(1, 'Email is required').email('Enter a valid email').max(255) });
+export const emailLoginSchema = z.object({ email: z.string().trim().email('Enter a valid email').max(255), password: z.string().min(1, 'Enter your password').max(72) });
+// Details asked after signing in with Google (no password needed).
+export const completeProfileSchema = signupSchema.omit({ password: true });
+// Shop staff logins use a private @phone.local address and never have a customer profile.
+export const isStaffEmail = (email: string | undefined | null) => /@phone\.local$/i.test(email ?? '');
 
 export function signupMetadata(v: SignupInput) {
   return {
@@ -29,11 +36,12 @@ export function signupMetadata(v: SignupInput) {
   };
 }
 
-export function friendlyAuthError(message: string | undefined, kind: 'login' | 'signup'): string {
+export function friendlyAuthError(message: string | undefined, kind: 'login' | 'signup', method: 'phone' | 'email' = 'phone'): string {
   const m = (message ?? '').toLowerCase();
   if (m.includes('invalid login')) return 'Wrong phone number or password.';
   if (m.includes('not confirmed')) return 'This account is not confirmed yet. Please contact the shop.';
-  if (m.includes('already') || m.includes('database error')) return 'This phone number already has an account. Please log in instead.';
+  if (m.includes('provider is not enabled') || m.includes('unsupported provider')) return 'Google sign-in is not available right now. Please use your phone number or email instead.';
+  if (m.includes('already') || m.includes('database error')) return method === 'email' ? 'An account with this email or phone number already exists. Please log in instead.' : 'This phone number already has an account. Please log in instead.';
   if (m.includes('signups not allowed') || m.includes('signup is disabled')) return 'New accounts are switched off right now. Please contact the shop.';
   if (m.includes('rate limit') || m.includes('too many')) return 'Too many attempts. Please wait a minute and try again.';
   return kind === 'login' ? 'Could not log in. Please try again.' : 'Could not create the account. Please try again.';
