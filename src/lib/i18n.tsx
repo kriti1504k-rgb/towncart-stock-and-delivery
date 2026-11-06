@@ -25,6 +25,7 @@ const hi: Record<string, string> = {
   'Password must be at least 6 characters': 'पासवर्ड कम से कम 6 अक्षर का होना चाहिए',
   'Only reset a password after confirming it is really the customer, for example by calling back on their registered number.': 'पासवर्ड तभी बदलें जब पक्का हो कि वह असली ग्राहक है, जैसे उनके दर्ज नंबर पर वापस कॉल करके।',
   'This customer does not have an account': 'इस ग्राहक का अकाउंट नहीं है', 'Admin access required': 'एडमिन अधिकार चाहिए', 'Could not reset the password': 'पासवर्ड नहीं बदल पाया',
+  'New order: call the customer to confirm it, then tap Confirmed.': 'नया ऑर्डर: ग्राहक को कॉल करके पक्का करें, फिर "पक्का हुआ" दबाएं।',
   // Dashboard
   "Today's new orders": 'आज के नए ऑर्डर', 'Pending orders': 'बाकी ऑर्डर', 'Total orders': 'कुल ऑर्डर', 'Sales this week': 'इस हफ्ते की बिक्री',
   'Latest orders': 'नए ऑर्डर', 'View all': 'सब देखें',

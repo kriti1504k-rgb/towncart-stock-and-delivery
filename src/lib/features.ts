@@ -1,3 +1,8 @@
+// Customer accounts (log in / create account on the Orders tab).
+// false = customers just place orders with their name, phone number, address and map pin, and the shop
+// calls them to confirm before shipping. Set to true to bring back sign-up and login.
+export const CUSTOMER_ACCOUNTS_ENABLED = false;
+
 // Switches for optional features.
 // "Continue with Google" on the customer login: keep false until Google sign-in has been set up in
 // Google Cloud and switched on in Supabase (see DEPLOY.md, Part F). Then change it to true.
