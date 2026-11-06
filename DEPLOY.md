@@ -121,3 +121,14 @@ NOTE: new products start with 0 stock, so the shop looks empty until you enter r
   works through the shop: use "Reset password" in the admin Customers tab.
 - Later, when you add verification (SMS or email codes), turn on email confirmation then.
 - Apple sign-in is not included. It needs a paid Apple Developer account; add it only if customers ask.
+
+---------------------------------------------------------------------
+
+## PART H. Ordering without customer accounts (current setup)
+
+- `CUSTOMER_ACCOUNTS_ENABLED = false` in `src/lib/features.ts`: customers do not sign up or log in. They place an order with
+  their name, phone number, address and map pin. The phone, address and pin are remembered on their phone for next time.
+- The shop owner sees the order in the admin panel, calls the customer on the phone number to confirm it, taps "Confirmed",
+  and then ships it (Dispatched, then Delivered).
+- Why there is no phone-number-only login: anyone who knows a number could then open that customer's saved address and past
+  orders. A phone login is only safe with an SMS code. The account code is kept and can be switched back on later.
